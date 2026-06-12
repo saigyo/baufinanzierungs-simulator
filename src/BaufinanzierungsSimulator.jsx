@@ -1,8 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ReferenceLine, Legend,
-} from "recharts";
 
 import { GREST, NOTAR_PROZENT, MODEL_COLORS, LIMIT_COLORS } from "./lib/constants.js";
 import { eur, pct } from "./lib/format.js";
@@ -14,6 +10,7 @@ import { Field, Num } from "./components/controls.jsx";
 import Footer from "./components/Footer.jsx";
 import MaxPriceSection from "./components/MaxPriceSection.jsx";
 import ModelTable from "./components/ModelTable.jsx";
+import ComparisonCharts from "./components/ComparisonCharts.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Haupt-Komponente                                                   */
@@ -50,38 +47,9 @@ export default function BaufinanzierungsSimulator() {
 
   /* Fokus-Modus: Klick auf Kurve, Legende oder eine Zeile im Modellvergleich hebt ein Modell
      hervor und dimmt die übrigen – in beiden Diagrammen und in der Tabelle; erneuter Klick
-     (oder Klick ins Diagramm) setzt zurück. */
+     (oder Klick ins Diagramm) setzt zurück. Render-Helfer: components/ComparisonCharts.jsx. */
   const fokusKey = models.some((m) => !m.infeasible && m.key === fokus) ? fokus : null;
   const toggleFokus = (key) => setFokus((f) => (f === key ? null : key));
-  // stopPropagation, damit der Reset-Handler des Diagramms den Klick nicht gleich wieder aufhebt
-  const stoppe = (args) => args.forEach((a) => { if (a && typeof a.stopPropagation === "function") a.stopPropagation(); });
-  const kurvenKlick = (key) => (...args) => { stoppe(args); toggleFokus(key); };
-  const legendenKlick = (...args) => {
-    stoppe(args);
-    const key = args[0] && (args[0].dataKey || args[0].value);
-    if (typeof key === "string") toggleFokus(key);
-  };
-  // Dimmen über die Strichfarbe, damit Legenden-Icon und -Text automatisch mitdimmen
-  const modellLinie = (m) => (
-    <Line key={m.key} dataKey={m.key}
-      stroke={fokusKey && fokusKey !== m.key ? "#CBD4CF" : MODEL_COLORS[m.key]}
-      strokeWidth={fokusKey === m.key ? 3 : 2} dot={false}
-      onClick={kurvenKlick(m.key)} />
-  );
-  /* Die fokussierte Kurve nochmals als oberste Ebene zeichnen (SVG malt in DOM-Reihenfolge),
-     damit gedimmte Kurven sie nicht verdecken – ohne Eintrag in Legende und Tooltip,
-     damit Reihenfolge und Inhalte dort stabil bleiben. */
-  const fokusLinie = fokusKey ? (
-    <Line key={"fokus-" + fokusKey} dataKey={fokusKey} stroke={MODEL_COLORS[fokusKey]}
-      strokeWidth={3} dot={false} legendType="none" tooltipType="none"
-      isAnimationActive={false} onClick={kurvenKlick(fokusKey)} />
-  ) : null;
-  // Explizites Legenden-Payload: hält die Fokus-Überlagerungslinie aus der Legende heraus
-  const legendenPayload = models.filter((m) => !m.infeasible).map((m) => ({
-    value: m.key, dataKey: m.key, type: "plainline",
-    color: fokusKey && fokusKey !== m.key ? "#CBD4CF" : MODEL_COLORS[m.key],
-    payload: { strokeDasharray: "" },
-  }));
 
   /* Umkehrrechnung: max. Kaufpreis je Modell und Belastungsgrenze */
   const invers = useMemo(() => computeInvers(inp, z, bsp, modus, limits), [modus, limits, inp, z, bsp]);
@@ -285,64 +253,11 @@ export default function BaufinanzierungsSimulator() {
 
           {models.length > 0 && (
             <>
-              <section className="bf-panel bf-chart">
-                <h2>Restschuld bis zur Rente</h2>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={calc.chart} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}
-                    onClick={() => setFokus(null)}>
-                    <CartesianGrid stroke="#D8DEDA" strokeDasharray="2 4" />
-                    <XAxis dataKey="alter" tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
-                      label={{ value: "Alter", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
-                    <YAxis tickFormatter={(v) => (v / 1000) + "k"} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }} width={52} />
-                    <Tooltip formatter={(v, name) => [eur(v), models.find((m) => m.key === name)?.short || name]}
-                      labelFormatter={(l) => "Alter " + l} />
-                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key}
-                      payload={legendenPayload} onClick={legendenKlick} />
-                    <ReferenceLine x={inp.rente} stroke="#1C2826" strokeDasharray="4 3"
-                      label={{ value: "Rente", position: "top", fontSize: 11, fontFamily: "IBM Plex Mono" }} />
-                    {calc.zielRest > 0 && (
-                      <ReferenceLine y={calc.zielRest} stroke="#A5524B" strokeDasharray="5 4"
-                        label={{ value: "Ablösung (z. B. KLV)", position: "insideTopRight", fontSize: 11, fontFamily: "IBM Plex Mono", fill: "#A5524B" }} />
-                    )}
-                    {models.filter((m) => !m.infeasible).map(modellLinie)}
-                    {fokusLinie}
-                  </LineChart>
-                </ResponsiveContainer>
-                <p className="bf-note">
-                  Klick auf eine Kurve, die Legende oder eine Zeile im Modellvergleich hebt das Modell hervor
-                  (gilt für beide Diagramme und die Tabelle); erneuter Klick oder Klick ins Diagramm stellt
-                  den Normalzustand wieder her.
-                </p>
-              </section>
-
-              <section className="bf-panel bf-chart">
-                <h2>Belastungsquote über die Laufzeit</h2>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={calc.chartBelastung} margin={{ top: 8, right: 38, bottom: 4, left: 8 }}
-                    onClick={() => setFokus(null)}>
-                    <CartesianGrid stroke="#D8DEDA" strokeDasharray="2 4" />
-                    <XAxis dataKey="alter" tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
-                      label={{ value: "Alter", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
-                    <YAxis tickFormatter={(v) => v + " %"} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
-                      width={52} domain={[0, (dataMax) => Math.max(45, Math.ceil(dataMax / 5) * 5)]} />
-                    <Tooltip formatter={(v, name) => [v.toLocaleString("de-DE") + " %", models.find((m) => m.key === name)?.short || name]}
-                      labelFormatter={(l) => "Alter " + l} />
-                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key}
-                      payload={legendenPayload} onClick={legendenKlick} />
-                    <ReferenceLine y={40} stroke="#A5524B" strokeDasharray="4 3"
-                      label={{ value: "40 %", position: "right", fontSize: 10, fontFamily: "IBM Plex Mono", fill: "#A5524B" }} />
-                    <ReferenceLine y={35} stroke="#B0762B" strokeDasharray="4 3"
-                      label={{ value: "35 %", position: "right", fontSize: 10, fontFamily: "IBM Plex Mono", fill: "#B0762B" }} />
-                    {models.filter((m) => !m.infeasible).map(modellLinie)}
-                    {fokusLinie}
-                  </LineChart>
-                </ResponsiveContainer>
-                <p className="bf-note">
-                  Monatsrate{calc.klv > 0 ? " + KLV-Beitrag" : ""} ÷ Nettoeinkommen des jeweiligen Jahres
-                  bei {pct(calc.g * 100, 1)} Einkommenssteigerung p. a. Sprünge entstehen durch
-                  Anschlussfinanzierung bzw. Bauspar-Zuteilung.
-                </p>
-              </section>
+              <ComparisonCharts models={models}
+                chart={calc.chart} chartBelastung={calc.chartBelastung}
+                rente={inp.rente} zielRest={calc.zielRest} klv={calc.klv} g={calc.g}
+                fokusKey={fokusKey} onToggleFokus={toggleFokus}
+                onResetFokus={() => setFokus(null)} />
 
               <ModelTable models={models} beste={beste}
                 stressDelta={calc.stressDelta} anschluss={z.anschluss}
