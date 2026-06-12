@@ -46,8 +46,23 @@ npm run build:standalone   # EINE eigenständige HTML-Datei:
 ├── index.html                        Vite-Einstieg
 ├── src/
 │   ├── main.jsx                      React-Bootstrap
-│   ├── BaufinanzierungsSimulator.jsx gesamte App (Logik, UI, Styles)
-│   └── BaufinanzierungsSimulator.test.js  Unit-Tests (Finanzmathematik, URL-Persistenz)
+│   ├── BaufinanzierungsSimulator.jsx Haupt-Komponente (State, URL-Sync, Layout)
+│   ├── styles.js                     CSS (Template-String, per <style> injiziert)
+│   ├── lib/                          Logik, React-frei
+│   │   ├── constants.js              Grunderwerbsteuer, Farben
+│   │   ├── format.js                 eur/pct-Formatierer (de-DE)
+│   │   ├── finance.js                Finanzmathematik (annuLoan, buildModels, …)
+│   │   ├── finance.test.js           Unit-Tests Finanzmathematik
+│   │   ├── persistence.js            URL-Persistenz (DEFAULTS, stateFromURL, …)
+│   │   ├── persistence.test.js       Unit-Tests URL-Persistenz
+│   │   └── calc.js                   computeCalc/computeInvers (abgeleitete Daten)
+│   └── components/                   UI-Komponenten
+│       ├── controls.jsx              Field, Num
+│       ├── InputPanel.jsx            Eingabe-Sektionen 01–04
+│       ├── ComparisonCharts.jsx      Restschuld- & Belastungs-Diagramm (Fokus-Modus)
+│       ├── ModelTable.jsx            Modellvergleich-Tabelle
+│       ├── MaxPriceSection.jsx       Umkehr-Modus (max. Kaufpreis)
+│       └── Footer.jsx                Annahmen & Disclaimer
 ├── scripts/
 │   └── build-standalone.mjs          Single-File-HTML-Build (esbuild)
 ├── vite.config.js

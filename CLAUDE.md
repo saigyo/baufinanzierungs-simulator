@@ -1,6 +1,6 @@
 # Baufinanzierungs-Simulator
 
-One-Page-React-App zum Vergleich von Baufinanzierungsmodellen. Ziel: Finanzierung ist
+React-App (eine Seite) zum Vergleich von Baufinanzierungsmodellen. Ziel: Finanzierung ist
 zum Renteneintritt getilgt bzw. auf eine definierte Ziel-Restschuld zurückgeführt
 (Ablösung z. B. durch fällige Kapitallebensversicherung).
 
@@ -15,23 +15,32 @@ zum Renteneintritt getilgt bzw. auf eine definierte Ziel-Restschuld zurückgefü
 
 ## Architektur
 
-Die gesamte App lebt bewusst in **einer Datei**: `src/BaufinanzierungsSimulator.jsx`.
-Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
+Logik und UI sind in Module getrennt; **`src/lib/` ist React-frei** und direkt testbar:
 
-1. **Konstanten & Hilfsfunktionen** – Grunderwerbsteuersätze je Bundesland (`GREST`),
-   Formatierer (`eur`, `pct`), Annuitätenformel.
-2. **Modell-Berechnungen** – `buildModels()` erzeugt sechs Modelle,
-   `annuLoan()` simuliert phasenweise Annuitätendarlehen, `summarize()` extrahiert Kennzahlen.
-3. **UI-Bausteine** – kleine Form-Komponenten (`Field`, `Num`), Modellfarben.
-4. **Haupt-Komponente** – State, `useMemo`-Berechnungen (`calc`, `invers`), JSX.
-5. **Styles** – CSS als Template-String (`const CSS`), wird per `<style>` injiziert.
-   Designsystem über CSS-Variablen (`--bg`, `--ink`, `--accent`, …),
-   Schriften: Archivo (Display), IBM Plex Sans (Text), IBM Plex Mono (Zahlen).
+- `src/lib/constants.js` – Grunderwerbsteuersätze je Bundesland (`GREST`), `NOTAR_PROZENT`,
+  Modell-/Limit-Farben (`MODEL_COLORS`, `LIMIT_COLORS`).
+- `src/lib/format.js` – Formatierer `eur`, `pct` (de-DE).
+- `src/lib/finance.js` – Finanzmathematik: `annuityPayment`, `annuLoan`, `addLoans`,
+  `buildModels` (erzeugt die sechs Modelle), `summarize` (Kennzahlen).
+- `src/lib/persistence.js` – `DEFAULTS`, `URL_KEYS`, `stateFromURL`, `stateToQuery`.
+- `src/lib/calc.js` – `computeCalc` (Modellvergleich inkl. Belastungsquoten, Stress, Charts)
+  und `computeInvers` (Umkehr-Modus); pure Funktionen, im Orchestrator per `useMemo` gecacht.
+- `src/components/` – UI: `controls.jsx` (`Field`, `Num`), `InputPanel.jsx` (Sektionen 01–04),
+  `ComparisonCharts.jsx` (beide LineCharts + Fokus-Render-Helfer), `ModelTable.jsx`
+  (Modellvergleich), `MaxPriceSection.jsx` (Umkehr-Modus), `Footer.jsx` (Annahmen/Disclaimer).
+- `src/BaufinanzierungsSimulator.jsx` – schlanker Orchestrator: State, URL-Sync,
+  Fokus-Modus (`fokus` ist geteilt zwischen Diagrammen und Tabelle, lebt deshalb hier),
+  KPI-Kacheln, Banner, Empfehlung.
+- `src/styles.js` – CSS als Template-String (`export const CSS`), per `<style>` injiziert.
+  **Bewusst kein `.css`-Import:** der Standalone-Build liest nur `outputFiles[0]` und würde
+  eine separate CSS-Datei stillschweigend verwerfen.
+  Designsystem über CSS-Variablen (`--bg`, `--ink`, `--accent`, …),
+  Schriften: Archivo (Display), IBM Plex Sans (Text), IBM Plex Mono (Zahlen).
 
-Die Finanzmathematik- und Persistenz-Funktionen sind **benannt exportiert** (Default-Export
-bleibt die Komponente), damit `src/BaufinanzierungsSimulator.test.js` (Vitest) sie direkt
-importieren kann. Bei Änderungen an der Finanzmathematik Tests mitziehen; sie prüfen
-Invarianten (Kalibrierung per Gegenrechnung, Summenbilanz, Ziel-Restschuld) statt Festwerten.
+Tests (Vitest) liegen neben den Modulen: `src/lib/finance.test.js`,
+`src/lib/persistence.test.js`. Bei Änderungen an der Finanzmathematik Tests mitziehen;
+sie prüfen Invarianten (Kalibrierung per Gegenrechnung, Summenbilanz, Ziel-Restschuld)
+statt Festwerten.
 
 ## Finanzmathematik (wichtig bei Änderungen)
 
@@ -45,7 +54,7 @@ Invarianten (Kalibrierung per Gegenrechnung, Summenbilanz, Ziel-Restschuld) stat
   kalibrierten Folge-Raten. Zählt **nicht** zur Belastungsquote. Beim KfW-Modell fließt
   sie ins Hauptdarlehen; im Bauspar-Modell und im Umkehr-Modus wird sie ignoriert (im UI dokumentiert).
 - **Zins-Stresstest** (`stress`, %-Punkte Aufschlag nur auf den Anschlusszins): bei > 0
-  rechnet `calc` einen zweiten `buildModels()`-Lauf und der Modellvergleich zeigt eine
+  rechnet `computeCalc` einen zweiten `buildModels()`-Lauf und der Modellvergleich zeigt eine
   Stress-Spalte (Spitzen-Belastung + Zinskosten). Empfehlung bleibt Basisszenario;
   Umkehr-Modus unberührt.
 - **Modelle** (Keys): `a10`/`a15`/`a20` (Annuität mit Zinsbindung + Anschluss),
@@ -61,7 +70,7 @@ Invarianten (Kalibrierung per Gegenrechnung, Summenbilanz, Ziel-Restschuld) stat
 - **URL-Persistenz**: Alle Eingaben werden via `history.replaceState` in Query-Parametern
   gespiegelt (`stateToQuery`) und beim Laden wiederhergestellt (`stateFromURL`).
   Defaults erzeugen keine Parameter; ungültige Werte fallen auf `DEFAULTS` zurück.
-  Neue State-Felder in `DEFAULTS` + `URL_KEYS` ergänzen.
+  Neue State-Felder in `DEFAULTS` + `URL_KEYS` ergänzen (beides in `src/lib/persistence.js`).
 
 ## Konventionen
 
