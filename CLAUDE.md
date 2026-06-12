@@ -32,8 +32,16 @@ Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
 - `annuityPayment(K, zins, monate, restschuld)` – Annuität mit Ballon-Restschuld:
   Rate so, dass nach `monate` genau `restschuld` verbleibt
   (`(K − R·v^n)·r / (1 − v^n)` mit `v = (1+r)^-1`).
-- `annuLoan(K, n, phasen, ziel)` – simuliert Phasen (Zinsbindung → Anschlusszins);
+- `annuLoan(K, n, phasen, ziel, sonderJahr)` – simuliert Phasen (Zinsbindung → Anschlusszins);
   die Rate wird **je Phase neu** auf die Restlaufzeit und das Ziel kalibriert.
+- **Sondertilgung** (`inp.sonderTilgung`, €/Jahr): wird in `annuLoan()` jeweils zum
+  Jahresende getilgt, höchstens bis auf `ziel` herunter; senkt damit die je Phase neu
+  kalibrierten Folge-Raten. Zählt **nicht** zur Belastungsquote. Beim KfW-Modell fließt
+  sie ins Hauptdarlehen; im Bauspar-Modell und im Umkehr-Modus wird sie ignoriert (im UI dokumentiert).
+- **Zins-Stresstest** (`stress`, %-Punkte Aufschlag nur auf den Anschlusszins): bei > 0
+  rechnet `calc` einen zweiten `buildModels()`-Lauf und der Modellvergleich zeigt eine
+  Stress-Spalte (Spitzen-Belastung + Zinskosten). Empfehlung bleibt Basisszenario;
+  Umkehr-Modus unberührt.
 - **Modelle** (Keys): `a10`/`a15`/`a20` (Annuität mit Zinsbindung + Anschluss),
   `vt` (Volltilger), `kfw` (Hauptdarlehen 15 J. + KfW-Baustein ≤ 100 000 €, 10 J. Bindung),
   `bsp` (Bauspar-Kombi: tilgungsfreies Vorausdarlehen + Ansparphase + Bauspardarlehen,
@@ -44,6 +52,10 @@ Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
 - **Umkehr-Modus** (`modus === "max"`): Binärsuche über den Kaufpreis pro Modell und
   Belastungsgrenze (`limits`), prüft die Spitzen-Belastungsquote. Darlehen
   `D = P·(1+Nebenkostenquote) − Eigenkapital`. Ergebnis auf 1 000 € abgerundet.
+- **URL-Persistenz**: Alle Eingaben werden via `history.replaceState` in Query-Parametern
+  gespiegelt (`stateToQuery`) und beim Laden wiederhergestellt (`stateFromURL`).
+  Defaults erzeugen keine Parameter; ungültige Werte fallen auf `DEFAULTS` zurück.
+  Neue State-Felder in `DEFAULTS` + `URL_KEYS` ergänzen.
 
 ## Konventionen
 
@@ -55,7 +67,10 @@ Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
 
 ## Bekannte Vereinfachungen / mögliche nächste Schritte
 
-- Keine Sondertilgungen, Bereitstellungszinsen, Tilgungszuschüsse, Steuereffekte.
+- Keine Bereitstellungszinsen, Tilgungszuschüsse, Steuereffekte.
+- Sondertilgung gilt nicht im Bauspar-Modell und nicht im Umkehr-Modus;
+  der Zins-Stresstest variiert nur den Anschlusszins und nur im Modellvergleich.
 - Keine bonitäts-/beleihungsabhängigen Zinsaufschläge (Beleihungsauslauf wird nur angezeigt).
 - KLV: Beitrag fließt in die Belastung ein, Ablaufleistung/Rendite wird nicht simuliert.
-- Ideen: Sondertilgungs-Option, Zins-Stresstest für Anschluss, Persistenz via URL-Parameter.
+- Ideen: Sondertilgung im Umkehr-Modus, Stresstest auch für Bauspar-Zuteilungsrisiko,
+  „Link kopieren"-Button für die URL-Persistenz.

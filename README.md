@@ -14,7 +14,10 @@ Kapitallebensversicherung).
 - **Ziel-Restschuld bei Rente** + KLV-Monatsbeitrag in der Belastungsrechnung
 - **Einkommenssteigerung p. a.** – Belastungsquote wird gegen das Einkommen des
   jeweiligen Jahres geprüft (Spitzenwert über die Laufzeit)
+- **Sondertilgung** (€/Jahr) – senkt Restschuld, Zinskosten und Folge-Raten
+- **Zins-Stresstest** – Aufschlag auf den Anschlusszins, Spitzen-Belastung als eigene Spalte
 - **Umkehr-Modus:** maximaler Kaufpreis je Modell für frei wählbare Belastungsgrenzen
+- **Teilbare Links:** alle Eingaben werden als URL-Parameter gespeichert
 - Charts: Restschuldverlauf, Belastungsquote über die Laufzeit, Max-Kaufpreis-Balken
 
 ## Setup

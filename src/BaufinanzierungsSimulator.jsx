@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine, Legend,
@@ -30,8 +30,10 @@ function annuityPayment(K, rateAnnual, months, residual = 0) {
 }
 
 /** Annuitätendarlehen in Phasen; Rate wird je Phase so gesetzt, dass am Ende
- *  der Gesamtlaufzeit n genau die Ziel-Restschuld `ziel` verbleibt. */
-function annuLoan(K, n, phases, ziel = 0) {
+ *  der Gesamtlaufzeit n genau die Ziel-Restschuld `ziel` verbleibt.
+ *  `sonderJahr` wird jeweils zum Jahresende getilgt, höchstens bis auf `ziel`
+ *  herunter; die Rate der Folgephase wird auf der reduzierten Restschuld neu kalibriert. */
+function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
   let rest = K, interest = 0, done = 0;
   const restArr = [K], payArr = [];
   for (const ph of phases) {
@@ -43,8 +45,11 @@ function annuLoan(K, n, phases, ziel = 0) {
       const z = rest * r;
       interest += z;
       rest = Math.max(0, rest + z - pay);
+      if (sonderJahr > 0 && (done + i + 1) % 12 === 0)
+        rest = Math.max(rest - sonderJahr, Math.min(rest, ziel));
       restArr.push(rest);
       payArr.push(pay);
+      if (rest <= 0.5) break;
     }
     done += m;
     if (rest <= 0.5) break;
@@ -67,7 +72,7 @@ function addLoans(a, b) {
 /*  Modell-Berechnungen                                                */
 /* ------------------------------------------------------------------ */
 
-function buildModels(D, nMonths, z, bausparCfg, ziel = 0) {
+function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
   const models = [];
   const INF = Infinity;
 
@@ -76,7 +81,7 @@ function buildModels(D, nMonths, z, bausparCfg, ziel = 0) {
     const loan = annuLoan(D, nMonths, [
       { rate, months: jahre * 12 },
       { rate: z.anschluss, months: INF },
-    ], ziel);
+    ], ziel, sonder);
     const hatAnschluss = nMonths > jahre * 12;
     models.push({
       key, name: `Annuität · ${jahre} J. Zinsbindung`,
@@ -92,7 +97,7 @@ function buildModels(D, nMonths, z, bausparCfg, ziel = 0) {
 
   // Volltilgerdarlehen
   {
-    const loan = annuLoan(D, nMonths, [{ rate: z.volltilger, months: INF }], ziel);
+    const loan = annuLoan(D, nMonths, [{ rate: z.volltilger, months: INF }], ziel, sonder);
     models.push({
       key: "vt", name: "Volltilgerdarlehen", short: "Volltilger",
       zinsInfo: pct(z.volltilger),
@@ -108,19 +113,21 @@ function buildModels(D, nMonths, z, bausparCfg, ziel = 0) {
     const hauptTeil = D - kfwTeil;
     const hauptZiel = Math.min(ziel, hauptTeil);
     const kfwZiel = ziel - hauptZiel; // Rest des Ziels landet ggf. im KfW-Teil
+    // Sondertilgung fließt in das Hauptdarlehen; nur ohne Hauptdarlehen in den KfW-Teil
     const kfw = annuLoan(kfwTeil, nMonths, [
       { rate: z.kfw, months: 120 },
       { rate: z.anschluss, months: INF },
-    ], kfwZiel);
+    ], kfwZiel, hauptTeil > 0 ? 0 : sonder);
     const haupt = annuLoan(hauptTeil, nMonths, [
       { rate: z.z15, months: 180 },
       { rate: z.anschluss, months: INF },
-    ], hauptZiel);
+    ], hauptZiel, hauptTeil > 0 ? sonder : 0);
     const loan = addLoans(kfw, haupt);
     models.push({
       key: "kfw", name: "Annuität 15 J. + KfW-Baustein", short: "KfW-Kombi",
       zinsInfo: `${pct(z.z15)} + KfW ${pct(z.kfw)}`,
-      hinweis: `KfW-Wohneigentumsprogramm (${eur(kfwTeil)}, 10 J. Zinsbindung) ergänzt ein Hauptdarlehen mit 15 J. Zinsbindung. Anschluss jeweils zu ${pct(z.anschluss)}.`,
+      hinweis: `KfW-Wohneigentumsprogramm (${eur(kfwTeil)}, 10 J. Zinsbindung) ergänzt ein Hauptdarlehen mit 15 J. Zinsbindung. Anschluss jeweils zu ${pct(z.anschluss)}.`
+        + (sonder > 0 && hauptTeil > 0 ? " Sondertilgungen fließen in das Hauptdarlehen." : ""),
       ...summarize(loan, nMonths, ziel),
       loan,
     });
@@ -157,7 +164,8 @@ function buildModels(D, nMonths, z, bausparCfg, ziel = 0) {
       models.push({
         key: "bsp", name: "Bauspar-Kombimodell", short: "Bauspar-Kombi",
         zinsInfo: `${pct(bausparCfg.vorausZins)} → ${pct(bausparCfg.bausparZins)}`,
-        hinweis: `Tilgungsfreies Vorausdarlehen (${pct(bausparCfg.vorausZins)}) + paralleles Ansparen von ${bausparCfg.ansparQuote} % über ${bausparCfg.ansparJahre} Jahre, danach Bauspardarlehen zu ${pct(bausparCfg.bausparZins)}. Inkl. ca. 1 % Abschlussgebühr; Guthabenverzinsung vereinfachend vernachlässigt.`,
+        hinweis: `Tilgungsfreies Vorausdarlehen (${pct(bausparCfg.vorausZins)}) + paralleles Ansparen von ${bausparCfg.ansparQuote} % über ${bausparCfg.ansparJahre} Jahre, danach Bauspardarlehen zu ${pct(bausparCfg.bausparZins)}. Inkl. ca. 1 % Abschlussgebühr; Guthabenverzinsung vereinfachend vernachlässigt.`
+          + (sonder > 0 ? " Sondertilgungen werden in diesem Modell nicht berücksichtigt." : ""),
         ...summarize(loan, nMonths, ziel),
         loan,
       });
@@ -209,22 +217,95 @@ function Num({ value, onChange, step = 1, min = 0, max }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Persistenz: Eingaben <-> URL-Parameter                             */
+/* ------------------------------------------------------------------ */
+
+const DEFAULTS = {
+  inp: {
+    kaufpreis: 500000, eigenkapital: 120000, netto: 4500, einkommenPlus: 3,
+    alter: 38, rente: 67, bundesland: "Berlin",
+    makler: true, maklerProzent: 3.57, zielRest: 0, klvBeitrag: 0, sonderTilgung: 0,
+  },
+  z: { z10: 3.5, z15: 3.7, z20: 3.85, volltilger: 3.8, kfw: 3.4, anschluss: 4.2 },
+  bsp: { vorausZins: 3.9, bausparZins: 2.75, ansparJahre: 10, ansparQuote: 40 },
+  modus: "vergleich", limits: [30, 35, 40], stress: 0,
+};
+
+const URL_KEYS = {
+  inp: {
+    kaufpreis: "kp", eigenkapital: "ek", netto: "net", einkommenPlus: "ep",
+    alter: "al", rente: "re", bundesland: "bl", makler: "mk", maklerProzent: "mp",
+    zielRest: "zr", klvBeitrag: "klv", sonderTilgung: "so",
+  },
+  z: { z10: "z10", z15: "z15", z20: "z20", volltilger: "zvt", kfw: "zkfw", anschluss: "zan" },
+  bsp: { vorausZins: "bvz", bausparZins: "bbz", ansparJahre: "baj", ansparQuote: "baq" },
+};
+
+function stateFromURL() {
+  const s = {
+    inp: { ...DEFAULTS.inp }, z: { ...DEFAULTS.z }, bsp: { ...DEFAULTS.bsp },
+    modus: DEFAULTS.modus, limits: [...DEFAULTS.limits], stress: DEFAULTS.stress,
+  };
+  try {
+    const p = new URLSearchParams(window.location.search);
+    for (const [slice, map] of Object.entries(URL_KEYS)) {
+      for (const [field, key] of Object.entries(map)) {
+        const raw = p.get(key);
+        if (raw === null) continue;
+        const def = DEFAULTS[slice][field];
+        if (typeof def === "boolean") s[slice][field] = raw === "1";
+        else if (typeof def === "number") { const v = Number(raw); if (Number.isFinite(v)) s[slice][field] = v; }
+        else s[slice][field] = raw;
+      }
+    }
+    if (!(s.inp.bundesland in GREST)) s.inp.bundesland = DEFAULTS.inp.bundesland;
+    if (p.get("m") === "max") s.modus = "max";
+    const lim = (p.get("lim") || "").split(",").map(Number);
+    if (lim.length === DEFAULTS.limits.length && lim.every(Number.isFinite)) s.limits = lim;
+    if (p.has("sx")) { const v = Number(p.get("sx")); if (Number.isFinite(v)) s.stress = Math.max(0, v); }
+  } catch { /* z. B. eingeschränkte file://-Kontexte: Defaults verwenden */ }
+  return s;
+}
+
+function stateToQuery(inp, z, bsp, modus, limits, stress) {
+  const p = new URLSearchParams();
+  const slices = { inp, z, bsp };
+  for (const [slice, map] of Object.entries(URL_KEYS)) {
+    for (const [field, key] of Object.entries(map)) {
+      const v = slices[slice][field], def = DEFAULTS[slice][field];
+      if (v === def) continue;
+      p.set(key, typeof def === "boolean" ? (v ? "1" : "0") : String(v));
+    }
+  }
+  if (modus !== DEFAULTS.modus) p.set("m", modus);
+  if (limits.join(",") !== DEFAULTS.limits.join(",")) p.set("lim", limits.join(","));
+  if (stress !== DEFAULTS.stress) p.set("sx", String(stress));
+  return p.toString();
+}
+
+/* ------------------------------------------------------------------ */
 /*  Haupt-Komponente                                                   */
 /* ------------------------------------------------------------------ */
 
 export default function BaufinanzierungsSimulator() {
-  const [inp, setInp] = useState({
-    kaufpreis: 500000, eigenkapital: 120000, netto: 4500, einkommenPlus: 3,
-    alter: 38, rente: 67, bundesland: "Berlin",
-    makler: true, maklerProzent: 3.57, zielRest: 0, klvBeitrag: 0,
-  });
-  const [z, setZ] = useState({ z10: 3.5, z15: 3.7, z20: 3.85, volltilger: 3.8, kfw: 3.4, anschluss: 4.2 });
-  const [bsp, setBsp] = useState({ vorausZins: 3.9, bausparZins: 2.75, ansparJahre: 10, ansparQuote: 40 });
+  const [init] = useState(stateFromURL);
+  const [inp, setInp] = useState(init.inp);
+  const [z, setZ] = useState(init.z);
+  const [bsp, setBsp] = useState(init.bsp);
   const [zinsOffen, setZinsOffen] = useState(false);
   const [detail, setDetail] = useState(null);
-  const [modus, setModus] = useState("vergleich"); // "vergleich" | "max"
-  const [limits, setLimits] = useState([30, 35, 40]);
+  const [modus, setModus] = useState(init.modus); // "vergleich" | "max"
+  const [limits, setLimits] = useState(init.limits);
+  const [stress, setStress] = useState(init.stress); // Aufschlag auf den Anschlusszins in %-Punkten
   const LIMIT_COLORS = ["#9DBBAA", "#5F8F77", "#2E5C46"];
+
+  // Eingaben in der URL spiegeln – Links sind dadurch teil- und wiederherstellbar
+  useEffect(() => {
+    try {
+      const qs = stateToQuery(inp, z, bsp, modus, limits, stress);
+      window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash);
+    } catch { /* replaceState kann in Sandbox-Kontexten scheitern – dann ohne Persistenz */ }
+  }, [inp, z, bsp, modus, limits, stress]);
 
   const set = (k) => (v) => setInp((s) => ({ ...s, [k]: v }));
   const setRate = (k) => (v) => setZ((s) => ({ ...s, [k]: v }));
@@ -241,23 +322,40 @@ export default function BaufinanzierungsSimulator() {
     const nMonths = jahre * 12;
     const zielRest = Math.min(Math.max(0, inp.zielRest || 0), darlehen);
     const zielGekappt = (inp.zielRest || 0) > darlehen && darlehen > 0;
-    const models = nMonths > 0 && darlehen > 0 ? buildModels(darlehen, nMonths, z, bsp, zielRest) : [];
+    const sonder = Math.max(0, inp.sonderTilgung || 0);
+    const models = nMonths > 0 && darlehen > 0 ? buildModels(darlehen, nMonths, z, bsp, zielRest, sonder) : [];
 
     const klv = zielRest > 0 ? Math.max(0, inp.klvBeitrag || 0) : 0;
     const g = Math.max(0, inp.einkommenPlus || 0) / 100;
     const einkommenImJahr = (j) => inp.netto * Math.pow(1 + g, j);
+    const spitze = (loan) => {
+      let maxB = 0;
+      for (let mo = 0; mo < nMonths; mo++) {
+        const b = (((loan.payArr[mo] || 0) + klv) / einkommenImJahr(Math.floor(mo / 12))) * 100;
+        if (b > maxB) maxB = b;
+      }
+      return maxB;
+    };
+
+    // Stress-Szenario: Anschlusszins um `stress` %-Punkte höher
+    const stressDelta = Math.max(0, stress || 0);
+    const stressMap = stressDelta > 0 && models.length > 0
+      ? Object.fromEntries(
+          buildModels(darlehen, nMonths, { ...z, anschluss: z.anschluss + stressDelta }, bsp, zielRest, sonder)
+            .map((m) => [m.key, m]))
+      : null;
 
     models.forEach((m) => {
       if (m.infeasible) return;
       if (inp.netto <= 0) { m.belastung = 999; m.belastungStart = 999; m.tragbar = false; return; }
-      let maxB = 0;
-      for (let mo = 0; mo < nMonths; mo++) {
-        const b = (((m.loan.payArr[mo] || 0) + klv) / einkommenImJahr(Math.floor(mo / 12))) * 100;
-        if (b > maxB) maxB = b;
-      }
-      m.belastung = maxB; // Spitzen-Belastungsquote über die gesamte Laufzeit
+      m.belastung = spitze(m.loan); // Spitzen-Belastungsquote über die gesamte Laufzeit
       m.belastungStart = ((m.rate1 + klv) / inp.netto) * 100;
       m.tragbar = m.belastung <= 40;
+      const ms = stressMap && stressMap[m.key];
+      if (ms && !ms.infeasible) {
+        m.stressBelastung = spitze(ms.loan);
+        m.stressZinskosten = ms.zinskosten;
+      }
     });
     const kandidaten = models.filter((m) => !m.infeasible && m.tragbar);
     const beste = kandidaten.length
@@ -284,8 +382,8 @@ export default function BaufinanzierungsSimulator() {
       });
       chartBelastung.push(row);
     }
-    return { grest, notar, makler, nk, darlehen, bla, jahre, nMonths, models, beste, chart, chartBelastung, zielRest, zielGekappt, klv, g };
-  }, [inp, z, bsp]);
+    return { grest, notar, makler, nk, darlehen, bla, jahre, nMonths, models, beste, chart, chartBelastung, zielRest, zielGekappt, klv, g, sonder, stressDelta };
+  }, [inp, z, bsp, stress]);
 
   const { models, beste } = calc;
   const warnBLA = calc.bla > 100;
@@ -408,6 +506,13 @@ export default function BaufinanzierungsSimulator() {
               </p>
             </>
           )}
+          <Field label="Sondertilgung / Jahr" suffix="€">
+            <Num value={inp.sonderTilgung} step={1000} onChange={set("sonderTilgung")} />
+          </Field>
+          <p className="bf-note">
+            Jährliche Sondertilgung (jeweils zum Jahresende) aus Ersparnissen. Senkt Restschuld und
+            Zinskosten, ist aber nicht Teil der Belastungsquote. Im Bauspar-Modell nicht berücksichtigt.
+          </p>
 
           <h2>03 · Nebenkosten</h2>
           <Field label="Bundesland">
@@ -449,6 +554,18 @@ export default function BaufinanzierungsSimulator() {
                 <Field label="Anschlusszins" suffix="%"><Num value={z.anschluss} step={0.05} onChange={setRate("anschluss")} /></Field>
               </div>
               <p className="bf-note">Anschlusszins = Annahme für die Zeit nach Ablauf einer Zinsbindung.</p>
+              <h3>Stresstest Anschluss</h3>
+              <div className="bf-row2">
+                <Field label="Zinsaufschlag" suffix="%-Pkt.">
+                  <Num value={stress} step={0.5} min={0} max={10} onChange={setStress} />
+                </Field>
+              </div>
+              <p className="bf-note">
+                0 = aus. Bei einem Aufschlag &gt; 0 zeigt der Modellvergleich zusätzlich, wie die
+                Spitzen-Belastung ausfällt, wenn der Anschlusszins {stress > 0
+                  ? `${pct(z.anschluss + stress)} statt ${pct(z.anschluss)}`
+                  : "höher als angenommen"} beträgt.
+              </p>
               <h3>Bauspar-Kombi</h3>
               <div className="bf-row2">
                 <Field label="Vorausdarlehen" suffix="%"><Num value={bsp.vorausZins} step={0.05} onChange={setB("vorausZins")} /></Field>
@@ -482,6 +599,9 @@ export default function BaufinanzierungsSimulator() {
             )}
             {calc.klv > 0 && (
               <div className="bf-kpi"><span>KLV-Beitrag / Monat</span><strong>{eur(calc.klv)}</strong></div>
+            )}
+            {calc.sonder > 0 && (
+              <div className="bf-kpi"><span>Sondertilgung / Jahr</span><strong>{eur(calc.sonder)}</strong></div>
             )}
           </section>
 
@@ -583,7 +703,13 @@ export default function BaufinanzierungsSimulator() {
                     <thead>
                       <tr>
                         <th>Modell</th><th>Sollzins</th><th>Rate (Start)</th>
-                        <th>Rate (später)</th><th>Belastung (Spitze)</th><th>Zinskosten gesamt</th><th></th>
+                        <th>Rate (später)</th><th>Belastung (Spitze)</th>
+                        {calc.stressDelta > 0 && (
+                          <th>Stress +{pct(calc.stressDelta, 1)}<br />
+                            <span className="bf-th-sub">Anschluss {pct(z.anschluss + calc.stressDelta)}</span>
+                          </th>
+                        )}
+                        <th>Zinskosten gesamt</th><th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -595,7 +721,7 @@ export default function BaufinanzierungsSimulator() {
                             {beste && beste.key === m.key && <span className="bf-badge">Empfehlung</span>}
                           </td>
                           {m.infeasible ? (
-                            <td colSpan={5} className="bf-muted">{m.hinweis}</td>
+                            <td colSpan={calc.stressDelta > 0 ? 6 : 5} className="bf-muted">{m.hinweis}</td>
                           ) : (
                             <>
                               <td className="bf-num">{m.zinsInfo}</td>
@@ -605,6 +731,14 @@ export default function BaufinanzierungsSimulator() {
                                 {pct(m.belastung, 0)}
                                 {calc.g > 0 && <span className="bf-cell-sub">Start {pct(m.belastungStart, 0)}</span>}
                               </td>
+                              {calc.stressDelta > 0 && (
+                                <td className={"bf-num " + (m.stressBelastung > 40 ? "bf-red" : m.stressBelastung > 35 ? "bf-amber" : "bf-green")}>
+                                  {m.stressBelastung != null ? pct(m.stressBelastung, 0) : "—"}
+                                  {m.stressZinskosten != null && (
+                                    <span className="bf-cell-sub">Zinsen {eur(m.stressZinskosten)}</span>
+                                  )}
+                                </td>
+                              )}
                               <td className="bf-num">{eur(m.zinskosten)}</td>
                             </>
                           )}
@@ -632,6 +766,8 @@ export default function BaufinanzierungsSimulator() {
                   Alle Modelle sind so gerechnet, dass die Restschuld
                   zum Renteneintritt {calc.zielRest > 0 ? eur(calc.zielRest) : "0 €"} beträgt
                   {calc.zielRest > 0 ? " – dieser Betrag muss dann z. B. durch eine fällige Kapitallebensversicherung abgelöst werden." : "."}
+                  {calc.sonder > 0 && ` Sondertilgungen (${eur(calc.sonder)} p. a.) verkürzen die Tilgung bzw. senken die Folge-Raten, zählen aber nicht zur Belastungsquote.`}
+                  {calc.stressDelta > 0 && ` Stress-Spalte: Spitzen-Belastung und Zinskosten, falls der Anschlusszins um ${pct(calc.stressDelta, 1)}-Punkte höher ausfällt (${pct(z.anschluss + calc.stressDelta)}) – Modelle ohne Anschlussfinanzierung sind davon nicht betroffen. Die Empfehlung basiert auf dem Basisszenario.`}
                 </p>
               </section>
             </>
@@ -669,6 +805,7 @@ export default function BaufinanzierungsSimulator() {
                   Anteil des Nettoeinkommens im jeweiligen Jahr (Steigerung {pct(Math.max(0, inp.einkommenPlus || 0), 1)} p. a.),
                   den Monatsrate{invers.klv > 0 ? ` + KLV-Beitrag (${eur(invers.klv)})` : ""} zu keinem Zeitpunkt der
                   Laufzeit überschreiten dürfen. Bei wachsendem Einkommen ist meist der Beginn der Finanzierung maßgeblich.
+                  {inp.sonderTilgung > 0 && " Sondertilgungen und Zins-Stresstest bleiben in dieser Berechnung unberücksichtigt."}
                 </p>
               </section>
 
@@ -744,8 +881,10 @@ export default function BaufinanzierungsSimulator() {
           )}
 
           <footer className="bf-footer">
-            Vereinfachtes Rechenmodell (monatliche Annuitäten, ohne Sondertilgungen, Bereitstellungszinsen,
-            Förder-Tilgungszuschüsse und Steuereffekte). Die Einkommenssteigerung ist eine idealisierte,
+            Vereinfachtes Rechenmodell (monatliche Annuitäten; optionale Sondertilgungen jeweils zum
+            Jahresende, im Bauspar-Modell und im Modus „Maximaler Kaufpreis" nicht berücksichtigt; ohne
+            Bereitstellungszinsen, Förder-Tilgungszuschüsse und Steuereffekte). Der Zins-Stresstest
+            variiert ausschließlich den Anschlusszins. Die Einkommenssteigerung ist eine idealisierte,
             gleichmäßige Annahme – reale Einkommen entwickeln sich in Sprüngen und können auch sinken;
             Banken rechnen bei der Kreditvergabe in der Regel mit dem heutigen Einkommen.
             Eine zum Renteneintritt verbleibende Restschuld
@@ -753,8 +892,10 @@ export default function BaufinanzierungsSimulator() {
             sein – der KLV-Beitrag wird in der Belastungsquote berücksichtigt, ob die Ablaufleistung die
             Restschuld tatsächlich deckt (Rendite-, Kosten- und Auszahlungsrisiko), prüft die Simulation
             jedoch nicht. Zinsannahmen sind frei wählbare Szenarien, keine
-            aktuellen Konditionen. Dies ist eine Simulation und keine Finanz- oder Anlageberatung –
-            für eine konkrete Finanzierung bitte Angebote von Banken bzw. unabhängigen Vermittlern einholen.
+            aktuellen Konditionen. Alle Eingaben werden in der Adresszeile gespeichert – die URL kann
+            als Lesezeichen abgelegt oder als Link geteilt werden. Dies ist eine Simulation und keine
+            Finanz- oder Anlageberatung – für eine konkrete Finanzierung bitte Angebote von Banken
+            bzw. unabhängigen Vermittlern einholen.
           </footer>
         </main>
       </div>
