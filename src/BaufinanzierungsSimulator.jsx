@@ -294,6 +294,7 @@ export default function BaufinanzierungsSimulator() {
   const [bsp, setBsp] = useState(init.bsp);
   const [zinsOffen, setZinsOffen] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [fokus, setFokus] = useState(null); // hervorgehobenes Modell in den Vergleichsdiagrammen
   const [modus, setModus] = useState(init.modus); // "vergleich" | "max"
   const [limits, setLimits] = useState(init.limits);
   const [stress, setStress] = useState(init.stress); // Aufschlag auf den Anschlusszins in %-Punkten
@@ -387,6 +388,40 @@ export default function BaufinanzierungsSimulator() {
 
   const { models, beste } = calc;
   const warnBLA = calc.bla > 100;
+
+  /* Fokus-Modus der Vergleichsdiagramme: Klick auf Kurve oder Legende hebt ein Modell
+     hervor und dimmt die übrigen; erneuter Klick (oder Klick ins Diagramm) setzt zurück. */
+  const fokusKey = models.some((m) => !m.infeasible && m.key === fokus) ? fokus : null;
+  const toggleFokus = (key) => setFokus((f) => (f === key ? null : key));
+  // stopPropagation, damit der Reset-Handler des Diagramms den Klick nicht gleich wieder aufhebt
+  const stoppe = (args) => args.forEach((a) => { if (a && typeof a.stopPropagation === "function") a.stopPropagation(); });
+  const kurvenKlick = (key) => (...args) => { stoppe(args); toggleFokus(key); };
+  const legendenKlick = (...args) => {
+    stoppe(args);
+    const key = args[0] && (args[0].dataKey || args[0].value);
+    if (typeof key === "string") toggleFokus(key);
+  };
+  // Dimmen über die Strichfarbe, damit Legenden-Icon und -Text automatisch mitdimmen
+  const modellLinie = (m) => (
+    <Line key={m.key} dataKey={m.key}
+      stroke={fokusKey && fokusKey !== m.key ? "#CBD4CF" : MODEL_COLORS[m.key]}
+      strokeWidth={fokusKey === m.key ? 3 : 2} dot={false}
+      onClick={kurvenKlick(m.key)} />
+  );
+  /* Die fokussierte Kurve nochmals als oberste Ebene zeichnen (SVG malt in DOM-Reihenfolge),
+     damit gedimmte Kurven sie nicht verdecken – ohne Eintrag in Legende und Tooltip,
+     damit Reihenfolge und Inhalte dort stabil bleiben. */
+  const fokusLinie = fokusKey ? (
+    <Line key={"fokus-" + fokusKey} dataKey={fokusKey} stroke={MODEL_COLORS[fokusKey]}
+      strokeWidth={3} dot={false} legendType="none" tooltipType="none"
+      isAnimationActive={false} onClick={kurvenKlick(fokusKey)} />
+  ) : null;
+  // Explizites Legenden-Payload: hält die Fokus-Überlagerungslinie aus der Legende heraus
+  const legendenPayload = models.filter((m) => !m.infeasible).map((m) => ({
+    value: m.key, dataKey: m.key, type: "plainline",
+    color: fokusKey && fokusKey !== m.key ? "#CBD4CF" : MODEL_COLORS[m.key],
+    payload: { strokeDasharray: "" },
+  }));
 
   /* Umkehrrechnung: max. Kaufpreis je Modell und Belastungsgrenze */
   const invers = useMemo(() => {
@@ -647,31 +682,37 @@ export default function BaufinanzierungsSimulator() {
               <section className="bf-panel bf-chart">
                 <h2>Restschuld bis zur Rente</h2>
                 <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={calc.chart} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}>
+                  <LineChart data={calc.chart} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}
+                    onClick={() => setFokus(null)}>
                     <CartesianGrid stroke="#D8DEDA" strokeDasharray="2 4" />
                     <XAxis dataKey="alter" tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
                       label={{ value: "Alter", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
                     <YAxis tickFormatter={(v) => (v / 1000) + "k"} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }} width={52} />
                     <Tooltip formatter={(v, name) => [eur(v), models.find((m) => m.key === name)?.short || name]}
                       labelFormatter={(l) => "Alter " + l} />
-                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key} iconType="plainline" />
+                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key}
+                      payload={legendenPayload} onClick={legendenKlick} />
                     <ReferenceLine x={inp.rente} stroke="#1C2826" strokeDasharray="4 3"
                       label={{ value: "Rente", position: "top", fontSize: 11, fontFamily: "IBM Plex Mono" }} />
                     {calc.zielRest > 0 && (
                       <ReferenceLine y={calc.zielRest} stroke="#A5524B" strokeDasharray="5 4"
                         label={{ value: "Ablösung (z. B. KLV)", position: "insideTopRight", fontSize: 11, fontFamily: "IBM Plex Mono", fill: "#A5524B" }} />
                     )}
-                    {models.filter((m) => !m.infeasible).map((m) => (
-                      <Line key={m.key} dataKey={m.key} stroke={MODEL_COLORS[m.key]} strokeWidth={2} dot={false} />
-                    ))}
+                    {models.filter((m) => !m.infeasible).map(modellLinie)}
+                    {fokusLinie}
                   </LineChart>
                 </ResponsiveContainer>
+                <p className="bf-note">
+                  Klick auf eine Kurve oder die Legende hebt das Modell hervor (gilt für beide Diagramme);
+                  erneuter Klick oder Klick ins Diagramm stellt den Normalzustand wieder her.
+                </p>
               </section>
 
               <section className="bf-panel bf-chart">
                 <h2>Belastungsquote über die Laufzeit</h2>
                 <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={calc.chartBelastung} margin={{ top: 8, right: 38, bottom: 4, left: 8 }}>
+                  <LineChart data={calc.chartBelastung} margin={{ top: 8, right: 38, bottom: 4, left: 8 }}
+                    onClick={() => setFokus(null)}>
                     <CartesianGrid stroke="#D8DEDA" strokeDasharray="2 4" />
                     <XAxis dataKey="alter" tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
                       label={{ value: "Alter", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
@@ -679,14 +720,14 @@ export default function BaufinanzierungsSimulator() {
                       width={52} domain={[0, (dataMax) => Math.max(45, Math.ceil(dataMax / 5) * 5)]} />
                     <Tooltip formatter={(v, name) => [v.toLocaleString("de-DE") + " %", models.find((m) => m.key === name)?.short || name]}
                       labelFormatter={(l) => "Alter " + l} />
-                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key} iconType="plainline" />
+                    <Legend formatter={(key) => models.find((m) => m.key === key)?.short || key}
+                      payload={legendenPayload} onClick={legendenKlick} />
                     <ReferenceLine y={40} stroke="#A5524B" strokeDasharray="4 3"
                       label={{ value: "40 %", position: "right", fontSize: 10, fontFamily: "IBM Plex Mono", fill: "#A5524B" }} />
                     <ReferenceLine y={35} stroke="#B0762B" strokeDasharray="4 3"
                       label={{ value: "35 %", position: "right", fontSize: 10, fontFamily: "IBM Plex Mono", fill: "#B0762B" }} />
-                    {models.filter((m) => !m.infeasible).map((m) => (
-                      <Line key={m.key} dataKey={m.key} stroke={MODEL_COLORS[m.key]} strokeWidth={2} dot={false} />
-                    ))}
+                    {models.filter((m) => !m.infeasible).map(modellLinie)}
+                    {fokusLinie}
                   </LineChart>
                 </ResponsiveContainer>
                 <p className="bf-note">
@@ -975,6 +1016,8 @@ const CSS = `
 .bf-best p{margin:0;font-size:13px;color:#C9D4CE}
 
 .bf-chart{margin-bottom:14px}
+.bf-chart .recharts-legend-item{cursor:pointer}
+.bf-chart .recharts-line-curve{cursor:pointer}
 
 .bf-tablewrap{overflow-x:auto}
 .bf-table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px}
