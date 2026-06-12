@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: read
+  checks: write        # Check-Run der publish-test-results-Action
+  pull-requests: write # PR-Kommentar der publish-test-results-Action
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -32,8 +34,17 @@ jobs:
         run: npm run build:standalone
 
       - name: Unit-Tests
-        run: npx vitest run --reporter=default --reporter=json --outputFile=test-results.json
+        run: >
+          npx vitest run --reporter=default --reporter=json --reporter=junit
+          --outputFile.json=test-results.json --outputFile.junit=test-results.xml
 
       - name: Testergebnis ins Summary schreiben
         if: always()
         run: node .github/scripts/test-summary.mjs test-results.json
+
+      - name: Testergebnis im PR publizieren
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml
+          check_name: Testergebnisse
