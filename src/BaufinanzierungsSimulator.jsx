@@ -4,22 +4,12 @@ import {
   CartesianGrid, Tooltip, ReferenceLine, Legend,
 } from "recharts";
 
+import { GREST, NOTAR_PROZENT, MODEL_COLORS, LIMIT_COLORS } from "./lib/constants.js";
+import { eur, pct } from "./lib/format.js";
+
 /* ------------------------------------------------------------------ */
 /*  Konstanten & Hilfsfunktionen                                       */
 /* ------------------------------------------------------------------ */
-
-const GREST = {
-  "Baden-Württemberg": 5.0, "Bayern": 3.5, "Berlin": 6.0, "Brandenburg": 6.5,
-  "Bremen": 5.0, "Hamburg": 5.5, "Hessen": 6.0, "Mecklenburg-Vorpommern": 6.0,
-  "Niedersachsen": 5.0, "Nordrhein-Westfalen": 6.5, "Rheinland-Pfalz": 5.0,
-  "Saarland": 6.5, "Sachsen": 5.5, "Sachsen-Anhalt": 5.0,
-  "Schleswig-Holstein": 6.5, "Thüringen": 5.0,
-};
-const NOTAR_PROZENT = 2.0; // Notar + Grundbuch
-
-const eur0 = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-const eur = (v) => eur0.format(Math.round(v));
-const pct = (v, d = 2) => v.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %";
 
 export function annuityPayment(K, rateAnnual, months, residual = 0) {
   if (months <= 0 || K <= 0) return 0;
@@ -195,11 +185,6 @@ export function summarize(loan, nMonths, ziel = 0) {
 /*  UI-Bausteine                                                       */
 /* ------------------------------------------------------------------ */
 
-const MODEL_COLORS = {
-  a10: "#8FB3D9", a15: "#4F81B3", a20: "#1F4E79",
-  vt: "#2E7D5B", kfw: "#C07A2E", bsp: "#A5524B",
-};
-
 function Field({ label, suffix, children }) {
   return (
     <label className="bf-field">
@@ -298,7 +283,6 @@ export default function BaufinanzierungsSimulator() {
   const [modus, setModus] = useState(init.modus); // "vergleich" | "max"
   const [limits, setLimits] = useState(init.limits);
   const [stress, setStress] = useState(init.stress); // Aufschlag auf den Anschlusszins in %-Punkten
-  const LIMIT_COLORS = ["#9DBBAA", "#5F8F77", "#2E5C46"];
 
   // Eingaben in der URL spiegeln – Links sind dadurch teil- und wiederherstellbar
   useEffect(() => {
