@@ -8,11 +8,7 @@ import { GREST, NOTAR_PROZENT, MODEL_COLORS, LIMIT_COLORS } from "./lib/constant
 import { eur, pct } from "./lib/format.js";
 
 import { buildModels } from "./lib/finance.js";
-import { DEFAULTS, stateFromURL, stateToQuery } from "./lib/persistence.js";
-
-// Re-Exporte, bis die Tests auf die lib-Module umgestellt sind (Schritt 4)
-export { annuityPayment, annuLoan, addLoans, buildModels, summarize } from "./lib/finance.js";
-export { DEFAULTS, stateFromURL, stateToQuery } from "./lib/persistence.js";
+import { stateFromURL, stateToQuery } from "./lib/persistence.js";
 
 /* ------------------------------------------------------------------ */
 /*  UI-Bausteine                                                       */
