@@ -27,6 +27,7 @@ Voraussetzung: Node.js ≥ 20 (LTS).
 ```bash
 npm install
 npm run dev          # Dev-Server mit Hot Reload (http://localhost:5173)
+npm test             # Unit-Tests (Vitest); npm run test:watch für den Watch-Modus
 ```
 
 ## Builds
@@ -45,7 +46,8 @@ npm run build:standalone   # EINE eigenständige HTML-Datei:
 ├── index.html                        Vite-Einstieg
 ├── src/
 │   ├── main.jsx                      React-Bootstrap
-│   └── BaufinanzierungsSimulator.jsx gesamte App (Logik, UI, Styles)
+│   ├── BaufinanzierungsSimulator.jsx gesamte App (Logik, UI, Styles)
+│   └── BaufinanzierungsSimulator.test.js  Unit-Tests (Finanzmathematik, URL-Persistenz)
 ├── scripts/
 │   └── build-standalone.mjs          Single-File-HTML-Build (esbuild)
 ├── vite.config.js

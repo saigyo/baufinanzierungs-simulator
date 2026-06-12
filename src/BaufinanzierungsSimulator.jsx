@@ -21,7 +21,7 @@ const eur0 = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR"
 const eur = (v) => eur0.format(Math.round(v));
 const pct = (v, d = 2) => v.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %";
 
-function annuityPayment(K, rateAnnual, months, residual = 0) {
+export function annuityPayment(K, rateAnnual, months, residual = 0) {
   if (months <= 0 || K <= 0) return 0;
   const r = rateAnnual / 100 / 12;
   if (r === 0) return Math.max(0, (K - residual) / months);
@@ -33,7 +33,7 @@ function annuityPayment(K, rateAnnual, months, residual = 0) {
  *  der Gesamtlaufzeit n genau die Ziel-Restschuld `ziel` verbleibt.
  *  `sonderJahr` wird jeweils zum Jahresende getilgt, höchstens bis auf `ziel`
  *  herunter; die Rate der Folgephase wird auf der reduzierten Restschuld neu kalibriert. */
-function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
+export function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
   let rest = K, interest = 0, done = 0;
   const restArr = [K], payArr = [];
   for (const ph of phases) {
@@ -60,7 +60,7 @@ function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
   return { restArr, payArr, interest };
 }
 
-function addLoans(a, b) {
+export function addLoans(a, b) {
   const n = Math.max(a.restArr.length, b.restArr.length);
   const restArr = [], payArr = [];
   for (let i = 0; i < n; i++) restArr.push((a.restArr[i] || 0) + (b.restArr[i] || 0));
@@ -72,7 +72,7 @@ function addLoans(a, b) {
 /*  Modell-Berechnungen                                                */
 /* ------------------------------------------------------------------ */
 
-function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
+export function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
   const models = [];
   const INF = Infinity;
 
@@ -175,7 +175,7 @@ function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
   return models;
 }
 
-function summarize(loan, nMonths, ziel = 0) {
+export function summarize(loan, nMonths, ziel = 0) {
   const rate1 = loan.payArr[0] || 0;
   const rateMax = Math.max(...loan.payArr, 0);
   // letzte abweichende Rate (z. B. nach Anschluss / Zuteilung)
@@ -220,7 +220,7 @@ function Num({ value, onChange, step = 1, min = 0, max }) {
 /*  Persistenz: Eingaben <-> URL-Parameter                             */
 /* ------------------------------------------------------------------ */
 
-const DEFAULTS = {
+export const DEFAULTS = {
   inp: {
     kaufpreis: 500000, eigenkapital: 120000, netto: 4500, einkommenPlus: 3,
     alter: 38, rente: 67, bundesland: "Berlin",
@@ -241,7 +241,7 @@ const URL_KEYS = {
   bsp: { vorausZins: "bvz", bausparZins: "bbz", ansparJahre: "baj", ansparQuote: "baq" },
 };
 
-function stateFromURL() {
+export function stateFromURL() {
   const s = {
     inp: { ...DEFAULTS.inp }, z: { ...DEFAULTS.z }, bsp: { ...DEFAULTS.bsp },
     modus: DEFAULTS.modus, limits: [...DEFAULTS.limits], stress: DEFAULTS.stress,
@@ -267,7 +267,7 @@ function stateFromURL() {
   return s;
 }
 
-function stateToQuery(inp, z, bsp, modus, limits, stress) {
+export function stateToQuery(inp, z, bsp, modus, limits, stress) {
   const p = new URLSearchParams();
   const slices = { inp, z, bsp };
   for (const [slice, map] of Object.entries(URL_KEYS)) {

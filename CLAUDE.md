@@ -11,6 +11,7 @@ zum Renteneintritt getilgt bzw. auf eine definierte Ziel-Restschuld zurückgefü
 - `npm run build:standalone` – einzelne, offline lauffähige HTML-Datei
   (`dist/baufinanzierung-simulator.html`, React/Recharts inline gebündelt)
 - `npm run preview` – Produktions-Build lokal serven
+- `npm test` – Unit-Tests (Vitest, einmalig); `npm run test:watch` für den Watch-Modus
 
 ## Architektur
 
@@ -26,6 +27,11 @@ Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
 5. **Styles** – CSS als Template-String (`const CSS`), wird per `<style>` injiziert.
    Designsystem über CSS-Variablen (`--bg`, `--ink`, `--accent`, …),
    Schriften: Archivo (Display), IBM Plex Sans (Text), IBM Plex Mono (Zahlen).
+
+Die Finanzmathematik- und Persistenz-Funktionen sind **benannt exportiert** (Default-Export
+bleibt die Komponente), damit `src/BaufinanzierungsSimulator.test.js` (Vitest) sie direkt
+importieren kann. Bei Änderungen an der Finanzmathematik Tests mitziehen; sie prüfen
+Invarianten (Kalibrierung per Gegenrechnung, Summenbilanz, Ziel-Restschuld) statt Festwerten.
 
 ## Finanzmathematik (wichtig bei Änderungen)
 
@@ -60,7 +66,7 @@ Sie ist in klar markierte Blöcke gegliedert (Kommentar-Trennlinien):
 ## Konventionen
 
 - UI-Sprache ist Deutsch; Zahlenformatierung de-DE (`Intl.NumberFormat`).
-- Keine zusätzlichen Abhängigkeiten ohne Not – nur React + Recharts.
+- Keine zusätzlichen Abhängigkeiten ohne Not – nur React + Recharts (dev: Vite, esbuild, Vitest).
 - Geldbeträge intern als Number in Euro; Render nur über `eur()`/`pct()`.
 - Vereinfachungen stehen transparent im UI-Footer; neue Annahmen dort ergänzen.
 - Disclaimer beibehalten: Simulation, keine Finanz- oder Anlageberatung.
