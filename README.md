@@ -22,7 +22,7 @@ Kapitallebensversicherung).
 
 ## Setup
 
-Voraussetzung: Node.js ≥ 20 (LTS).
+Voraussetzung: Node.js ≥ 20.19 (bzw. ≥ 22.12, LTS empfohlen).
 
 ```bash
 npm install
