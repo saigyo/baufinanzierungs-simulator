@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-und-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Produktions-Build
+        run: npm run build
+
+      - name: Standalone-Build
+        run: npm run build:standalone
+
+      - name: Unit-Tests
+        run: npx vitest run --reporter=default --reporter=json --outputFile=test-results.json
+
+      - name: Testergebnis ins Summary schreiben
+        if: always()
+        run: node .github/scripts/test-summary.mjs test-results.json
