@@ -389,8 +389,9 @@ export default function BaufinanzierungsSimulator() {
   const { models, beste } = calc;
   const warnBLA = calc.bla > 100;
 
-  /* Fokus-Modus der Vergleichsdiagramme: Klick auf Kurve oder Legende hebt ein Modell
-     hervor und dimmt die übrigen; erneuter Klick (oder Klick ins Diagramm) setzt zurück. */
+  /* Fokus-Modus: Klick auf Kurve, Legende oder eine Zeile im Modellvergleich hebt ein Modell
+     hervor und dimmt die übrigen – in beiden Diagrammen und in der Tabelle; erneuter Klick
+     (oder Klick ins Diagramm) setzt zurück. */
   const fokusKey = models.some((m) => !m.infeasible && m.key === fokus) ? fokus : null;
   const toggleFokus = (key) => setFokus((f) => (f === key ? null : key));
   // stopPropagation, damit der Reset-Handler des Diagramms den Klick nicht gleich wieder aufhebt
@@ -703,8 +704,9 @@ export default function BaufinanzierungsSimulator() {
                   </LineChart>
                 </ResponsiveContainer>
                 <p className="bf-note">
-                  Klick auf eine Kurve oder die Legende hebt das Modell hervor (gilt für beide Diagramme);
-                  erneuter Klick oder Klick ins Diagramm stellt den Normalzustand wieder her.
+                  Klick auf eine Kurve, die Legende oder eine Zeile im Modellvergleich hebt das Modell hervor
+                  (gilt für beide Diagramme und die Tabelle); erneuter Klick oder Klick ins Diagramm stellt
+                  den Normalzustand wieder her.
                 </p>
               </section>
 
@@ -755,7 +757,15 @@ export default function BaufinanzierungsSimulator() {
                     </thead>
                     <tbody>
                       {models.map((m) => (
-                        <tr key={m.key} className={beste && beste.key === m.key ? "bf-tr-best" : ""}>
+                        <tr key={m.key}
+                          className={[
+                            beste && beste.key === m.key ? "bf-tr-best" : "",
+                            m.infeasible ? "" : "bf-tr-klick",
+                            fokusKey === m.key ? "bf-tr-fokus" : "",
+                            fokusKey && fokusKey !== m.key ? "bf-tr-dim" : "",
+                          ].filter(Boolean).join(" ")}
+                          style={fokusKey === m.key ? { boxShadow: `inset 3px 0 0 ${MODEL_COLORS[m.key]}` } : undefined}
+                          onClick={m.infeasible ? undefined : () => toggleFokus(m.key)}>
                           <td>
                             <span className="bf-dot" style={{ background: MODEL_COLORS[m.key] }} />
                             {m.name}
@@ -785,7 +795,7 @@ export default function BaufinanzierungsSimulator() {
                           )}
                           <td>
                             {!m.infeasible && (
-                              <button className="bf-mini" onClick={() => setDetail(detail === m.key ? null : m.key)}>
+                              <button className="bf-mini" onClick={(e) => { e.stopPropagation(); setDetail(detail === m.key ? null : m.key); }}>
                                 {detail === m.key ? "−" : "Info"}
                               </button>
                             )}
@@ -1029,6 +1039,11 @@ const CSS = `
 .bf-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.07em;text-transform:uppercase;
   background:var(--accent);color:#fff;padding:2px 6px;margin-left:8px}
 .bf-tr-best td{background:#EFF6F2}
+.bf-tr-klick{cursor:pointer}
+.bf-tr-fokus td{background:#DCEBE3}
+.bf-tr-fokus td:first-child{font-weight:600}
+.bf-tr-dim td{opacity:.4}
+.bf-tr-dim td .bf-badge{opacity:1}
 .bf-green{color:var(--accent)}.bf-amber{color:var(--amber)}.bf-red{color:var(--warn);font-weight:600}
 .bf-muted{color:var(--muted);font-size:12px}
 .bf-mini{border:1px solid var(--line);background:#FBFCFB;font:inherit;font-size:11px;padding:2px 8px;cursor:pointer}
