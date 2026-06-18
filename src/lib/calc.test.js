@@ -111,3 +111,116 @@ describe("computeCalc – Ziel-Restschuld & Sondertilgung", () => {
     expect(result.sonder).toBe(5000);
   });
 });
+
+/* ======================================================================== */
+/*  computeCalc – Belastungsquote & Modelle                                */
+/* ======================================================================== */
+
+describe("computeCalc – Belastungsquote & Modelle", () => {
+  it("berechnet Spitzen-Belastungsquote für alle Modelle", () => {
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin" };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    result.models.forEach(m => {
+      if (!m.infeasible) expect(m.belastung).toBeGreaterThan(0);
+    });
+  });
+
+  it("setzt belastung auf 999 und tragbar=false wenn netto = 0", () => {
+    const inp = { ...DEFAULTS.inp, netto: 0, bundesland: "Berlin" };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    result.models.forEach(m => {
+      if (!m.infeasible) {
+        expect(m.belastung).toBe(999);
+        expect(m.tragbar).toBe(false);
+      }
+    });
+  });
+
+  it("findet beste Modell (niedrigste Zinskosten)", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    if (result.beste) {
+      result.models
+        .filter(m => !m.infeasible && m.tragbar && m.key !== result.beste.key)
+        .forEach(m => {
+          expect(m.zinskosten).toBeGreaterThanOrEqual(result.beste.zinskosten);
+        });
+    }
+  });
+
+  it("setzt beste auf null wenn kein tragbares Modell", () => {
+    const inp = { ...DEFAULTS.inp, netto: 100, bundesland: "Berlin" };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.beste).toBeNull();
+  });
+
+  it("erzeugt leeres models-Array wenn nMonths = 0", () => {
+    const inp = { alter: 70, rente: 67, bundesland: "Berlin" };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.models).toEqual([]);
+  });
+
+  it("erzeugt leeres models-Array wenn darlehen = 0", () => {
+    const inp = { kaufpreis: 100000, eigenkapital: 500000, bundesland: "Berlin", alter: 38, rente: 67 };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.models).toEqual([]);
+  });
+});
+
+/* ======================================================================== */
+/*  computeCalc – Stress-Szenario                                         */
+/* ======================================================================== */
+
+describe("computeCalc – Stress-Szenario", () => {
+  it("berechnet Stress-Szenario mit Aufschlag", () => {
+    const stress = 1.0;
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, stress);
+    expect(result.stressDelta).toBe(1.0);
+    expect(result.models.some(m => m.stressBelastung !== undefined)).toBe(true);
+  });
+
+  it("hat kein Stress-Szenario wenn stress = 0", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.stressDelta).toBe(0);
+    expect(result.models.every(m => m.stressBelastung === undefined)).toBe(true);
+  });
+
+  it("Stress-Szenario erhöht Belastung bei Modellen mit Anschlussfinanzierung", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 2.0);
+    const a10 = result.models.find(m => m.key === "a10");
+    if (a10?.stressBelastung) {
+      expect(a10.stressBelastung).toBeGreaterThan(a10.belastung);
+    }
+  });
+});
+
+/* ======================================================================== */
+/*  computeCalc – Chart-Daten                                               */
+/* ======================================================================== */
+
+describe("computeCalc – Chart-Daten", () => {
+  it("erzeugt Chart-Daten mit korrekter Länge", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.chart.length).toBe(DEFAULTS.inp.rente - DEFAULTS.inp.alter + 1);
+  });
+
+  it("Chart-Daten enthalten Alter und Modellwerte", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    result.chart.forEach(row => {
+      expect(row.alter).toBeGreaterThanOrEqual(DEFAULTS.inp.alter);
+      expect(row.alter).toBeLessThanOrEqual(DEFAULTS.inp.rente);
+    });
+  });
+
+  it("erzeugt Belastungsquote-Chart mit korrekter Länge", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.chartBelastung.length).toBe(DEFAULTS.inp.rente - DEFAULTS.inp.alter);
+  });
+
+  it("Belastungsquote-Chart enthält Alter und Modellwerte", () => {
+    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    result.chartBelastung.forEach(row => {
+      expect(row.alter).toBeGreaterThanOrEqual(DEFAULTS.inp.alter);
+      expect(row.alter).toBeLessThan(DEFAULTS.inp.rente);
+    });
+  });
+});
