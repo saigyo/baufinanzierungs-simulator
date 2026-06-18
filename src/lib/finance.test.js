@@ -193,3 +193,123 @@ describe("summarize", () => {
     expect(s.restRente).toBeLessThanOrEqual(80000 + 0.01);
   });
 });
+
+/* ======================================================================== */
+/*  EDGE CASE TESTS (Priorität 1)                                              */
+/* ======================================================================== */
+
+describe("annuityPayment – Edge Cases", () => {
+  it("behandelt negative Darlehensbeträge sicher", () => {
+    expect(annuityPayment(-100000, 3.7, 120)).toBe(0);
+  });
+
+  it("behandelt negative Zinssätze sicher", () => {
+    expect(annuityPayment(100000, -3.7, 120)).toBe(0);
+  });
+
+  it("behandelt negative Laufzeiten sicher", () => {
+    expect(annuityPayment(100000, 3.7, -120)).toBe(0);
+  });
+
+  it("behandelt Restschuld > Darlehen korrekt", () => {
+    expect(annuityPayment(50000, 3.7, 120, 100000)).toBe(0);
+  });
+});
+
+describe("annuLoan – Edge Cases", () => {
+  it("behandelt K=0 korrekt", () => {
+    const loan = annuLoan(0, N, PHASEN);
+    expect(loan.restArr.every((r) => r === 0)).toBe(true);
+    expect(loan.payArr.every((p) => p === 0)).toBe(true);
+    expect(loan.interest).toBe(0);
+  });
+
+  it("behandelt n=0 korrekt", () => {
+    const loan = annuLoan(D, 0, PHASEN);
+    expect(loan.restArr).toEqual([D]);
+    expect(loan.payArr).toEqual([]);
+    expect(loan.interest).toBe(0);
+  });
+
+  it("behandelt leere Phasen-Array korrekt", () => {
+    const loan = annuLoan(D, N, []);
+    expect(loan.restArr[0]).toBe(D);
+    expect(loan.restArr[N]).toBe(D);
+    expect(loan.interest).toBe(0);
+    expect(loan.payArr.every((p) => p === 0)).toBe(true);
+  });
+
+  it("behandelt Ziel-Restschuld > Darlehen korrekt", () => {
+    const loan = annuLoan(D, N, PHASEN, D + 100000);
+    expect(loan.restArr[0]).toBe(D);
+    expect(loan.restArr[N]).toBeCloseTo(D, 4);
+  });
+});
+
+describe("addLoans – Edge Cases", () => {
+  it("behandelt leere Loans korrekt", () => {
+    const empty = { restArr: [], payArr: [], interest: 0 };
+    const sum = addLoans(empty, empty);
+    expect(sum.restArr).toEqual([]);
+    expect(sum.payArr).toEqual([]);
+    expect(sum.interest).toBe(0);
+  });
+
+  it("behandelt unterschiedliche Array-Längen korrekt", () => {
+    const a = annuLoan(100000, 120, [{ rate: 3.4, months: 120 }]);
+    const b = annuLoan(200000, 240, [{ rate: 3.7, months: 240 }]);
+    const sum = addLoans(a, b);
+    expect(sum.restArr.length).toBe(241); // max(121, 241)
+    expect(sum.payArr.length).toBe(240); // max(120, 240)
+    expect(sum.interest).toBeCloseTo(a.interest + b.interest, 8);
+  });
+});
+
+describe("buildModels – Edge Cases", () => {
+  it("behandelt Darlehen=0 korrekt", () => {
+    const models = buildModels(0, N, Z, BSP);
+    expect(models.length).toBe(6);
+    models.forEach((m) => {
+      if (!m.infeasible) {
+        expect(m.loan.restArr[0]).toBe(0);
+        expect(m.loan.interest).toBe(0);
+      }
+    });
+  });
+
+  it("behandelt nMonths=0 korrekt", () => {
+    const models = buildModels(D, 0, Z, BSP);
+    expect(models.length).toBe(6);
+    models.forEach((m) => {
+      if (!m.infeasible) {
+        expect(m.loan.restArr[0]).toBe(D);
+      }
+    });
+  });
+});
+
+describe("summarize – Edge Cases", () => {
+  it("behandelt leere Arrays korrekt", () => {
+    const loan = { restArr: [], payArr: [], interest: 0 };
+    const s = summarize(loan, N);
+    expect(s.rate1).toBe(0);
+    expect(s.rateMax).toBe(0);
+    expect(s.payoffMonth).toBe(N);
+    expect(s.restRente).toBe(0);
+    expect(s.infeasible).toBe(false);
+  });
+
+  it("behandelt nMonths=0 korrekt", () => {
+    const loan = annuLoan(D, N, PHASEN);
+    const s = summarize(loan, 0);
+    expect(s.payoffMonth).toBe(0);
+    expect(s.restRente).toBe(loan.restArr[0]);
+  });
+
+  it("behandelt Ziel-Restschuld korrekt bei summarize", () => {
+    const loan = annuLoan(D, N, PHASEN, 50000);
+    const s = summarize(loan, N, 50000);
+    expect(s.restRente).toBeLessThanOrEqual(50000.01);
+    expect(s.payoffMonth).toBeLessThanOrEqual(N);
+  });
+});
