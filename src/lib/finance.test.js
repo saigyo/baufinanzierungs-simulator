@@ -195,6 +195,48 @@ describe("summarize", () => {
 });
 
 /* ======================================================================== */
+/*  BAUSPAR MODEL TESTS (Priorität 2)                                         */
+/* ======================================================================== */
+
+describe("buildModels – Bauspar-Modell", () => {
+  it("erzeugt erfolgreiches Bauspar-Modell mit korrekter Tilgung", () => {
+    const models = buildModels(D, N, Z, BSP);
+    const bsp = models.find((m) => m.key === "bsp");
+    expect(bsp.infeasible).toBe(false);
+    expect(bsp.loan.restArr[0]).toBe(D);
+    expect(bsp.loan.restArr[N]).toBeLessThanOrEqual(0.01);
+  });
+
+  it("Bauspar-Modell ignoriert Sondertilgung (per Design)", () => {
+    const modelOhneSonder = buildModels(D, N, Z, BSP, 0, 0).find((m) => m.key === "bsp");
+    const modelMitSonder = buildModels(D, N, Z, BSP, 0, 10000).find((m) => m.key === "bsp");
+    expect(modelOhneSonder.loan.restArr).toEqual(modelMitSonder.loan.restArr);
+    expect(modelOhneSonder.loan.payArr).toEqual(modelMitSonder.loan.payArr);
+  });
+
+  it("Bauspar-Modell: Ansparphase mit korrekter Guthabenbildung", () => {
+    const bspCfg = { ...BSP, ansparJahre: 10, ansparQuote: 40 };
+    const models = buildModels(D, N, Z, bspCfg);
+    const bsp = models.find((m) => m.key === "bsp");
+    expect(bsp.infeasible).toBe(false);
+    // Nach 10 Jahren (120 Monaten) sollte das Vorausdarlehen reduziert sein
+    const ansparMonate = bspCfg.ansparJahre * 12;
+    expect(bsp.loan.restArr[ansparMonate]).toBeLessThan(D);
+  });
+
+  it("Bauspar-Modell: nicht darstellbar bei zu langer Ansparphase", () => {
+    const bsp = buildModels(D, N, Z, { ...BSP, ansparJahre: 30 }).find((m) => m.key === "bsp");
+    expect(bsp.infeasible).toBe(true);
+    expect(bsp.hinweis).toContain("Ansparphase");
+  });
+
+  it("Bauspar-Modell: Ansparphase = Laufzeit ist nicht darstellbar", () => {
+    const bsp = buildModels(D, N, Z, { ...BSP, ansparJahre: N / 12 }).find((m) => m.key === "bsp");
+    expect(bsp.infeasible).toBe(true);
+  });
+});
+
+/* ======================================================================== */
 /*  EDGE CASE TESTS (Priorität 1)                                              */
 /* ======================================================================== */
 
