@@ -237,6 +237,60 @@ describe("buildModels – Bauspar-Modell", () => {
 });
 
 /* ======================================================================== */
+/*  INTEGRATION TESTS (Priorität 2)                                           */
+/* ======================================================================== */
+
+describe("Integration: Alle Modelle – Summenbilanz", () => {
+  it("alle darstellbaren Modelle erfüllen die Summenbilanz", () => {
+    const models = buildModels(D, N, Z, BSP);
+    models.forEach((m) => {
+      if (m.infeasible) return;
+      const sumRaten = m.loan.payArr.reduce((a, b) => a + b, 0);
+      expect(
+        Math.abs(sumRaten - (D + m.loan.interest)),
+        `Summenbilanz fehlgeschlagen für Modell ${m.key}`
+      ).toBeLessThan(1);
+    });
+  });
+
+  it("alle darstellbaren Modelle erreichen die Ziel-Restschuld exakt", () => {
+    const ziel = 50000;
+    const models = buildModels(D, N, Z, BSP, ziel);
+    models.forEach((m) => {
+      if (m.infeasible) return;
+      expect(
+        Math.abs(m.loan.restArr[N] - ziel),
+        `Ziel-Restschuld nicht erreicht für Modell ${m.key}`
+      ).toBeLessThan(1);
+    });
+  });
+
+  it("Sondertilgung senkt Zinskosten bei allen Modellen außer Bauspar", () => {
+    const ziel = 0;
+    const modelsOhne = buildModels(D, N, Z, BSP, ziel, 0);
+    const modelsMit = buildModels(D, N, Z, BSP, ziel, 5000);
+
+    ["a10", "a15", "a20", "vt", "kfw"].forEach((key) => {
+      const ohne = modelsOhne.find((m) => m.key === key);
+      const mit = modelsMit.find((m) => m.key === key);
+      expect(
+        mit.loan.interest,
+        `Sondertilgung sollte Zinskosten senken für Modell ${key}`
+      ).toBeLessThan(ohne.loan.interest);
+    });
+  });
+
+  it("alle Modelle haben korrekte Array-Längen", () => {
+    const models = buildModels(D, N, Z, BSP);
+    models.forEach((m) => {
+      if (m.infeasible) return;
+      expect(m.loan.restArr).toHaveLength(N + 1);
+      expect(m.loan.payArr).toHaveLength(N);
+    });
+  });
+});
+
+/* ======================================================================== */
 /*  EDGE CASE TESTS (Priorität 1)                                              */
 /* ======================================================================== */
 
