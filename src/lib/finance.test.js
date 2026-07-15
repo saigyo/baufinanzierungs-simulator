@@ -43,7 +43,14 @@ describe("annuityPayment", () => {
     expect(annuityPayment(0, 3.7, 120)).toBe(0);
     expect(annuityPayment(-1, 3.7, 120)).toBe(0);
     expect(annuityPayment(100000, 3.7, 0)).toBe(0);
+    expect(annuityPayment(100000, 3.7, -120)).toBe(0);
     expect(annuityPayment(50000, 3.7, 120, 100000)).toBe(0); // Restschuld > Darlehen
+  });
+
+  it("behandelt negative Zinssätze sicher (liefert positive Rate)", () => {
+    const rate = annuityPayment(100000, -3.7, 120);
+    expect(Number.isFinite(rate)).toBe(true);
+    expect(rate).toBeGreaterThan(0);
   });
 });
 
@@ -331,7 +338,13 @@ describe("buildModels – KfW-Kombi", () => {
   it("KfW-Kombi: Darlehen < 100k (nur KfW-Baustein) tilgt korrekt", () => {
     const models = buildModels(80000, N, Z, BSP, 0);
     const kfw = models.find((m) => m.key === "kfw");
-    expect(kfw.hinweis).toContain("80.000");
+    // Das gesamte Darlehen läuft als KfW-Baustein (10 J. Bindung + Anschluss)
+    const erwartet = annuLoan(80000, N, [
+      { rate: Z.kfw, months: 120 },
+      { rate: Z.anschluss, months: Infinity },
+    ]);
+    expect(kfw.rate1).toBeCloseTo(erwartet.payArr[0], 6);
+    expect(kfw.zinskosten).toBeCloseTo(erwartet.interest, 6);
     expect(Math.abs(kfw.loan.restArr[N])).toBeLessThan(0.01);
   });
 
@@ -345,8 +358,18 @@ describe("buildModels – KfW-Kombi", () => {
   it("KfW-Kombi: KfW-Teil auf 100.000 € gedeckelt", () => {
     const models = buildModels(D, N, Z, BSP);
     const kfw = models.find((m) => m.key === "kfw");
-    // Der KfW-Teil sollte 100.000 € sein
-    expect(kfw.hinweis).toContain("100.000");
+    // Gegenrechnung: KfW-Teil (100k) + Hauptdarlehen (D − 100k) getrennt aufgebaut
+    const kfwTeil = annuLoan(100000, N, [
+      { rate: Z.kfw, months: 120 },
+      { rate: Z.anschluss, months: Infinity },
+    ]);
+    const haupt = annuLoan(D - 100000, N, [
+      { rate: Z.z15, months: 180 },
+      { rate: Z.anschluss, months: Infinity },
+    ]);
+    const erwartet = addLoans(kfwTeil, haupt);
+    expect(kfw.rate1).toBeCloseTo(erwartet.payArr[0], 6);
+    expect(kfw.zinskosten).toBeCloseTo(erwartet.interest, 6);
   });
 
   it("KfW-Kombi mit Ziel-Restschuld verteilt korrekt", () => {
@@ -396,28 +419,6 @@ describe("buildModels – Annuitätsdarlehen", () => {
 /* ======================================================================== */
 /*  EDGE CASE TESTS (Priorität 1)                                              */
 /* ======================================================================== */
-
-describe("annuityPayment – Edge Cases", () => {
-  it("behandelt negative Darlehensbeträge sicher", () => {
-    expect(annuityPayment(-100000, 3.7, 120)).toBe(0);
-  });
-
-  it("behandelt negative Laufzeiten sicher", () => {
-    expect(annuityPayment(100000, 3.7, -120)).toBe(0);
-  });
-
-  it("behandelt Restschuld > Darlehen korrekt", () => {
-    expect(annuityPayment(50000, 3.7, 120, 100000)).toBe(0);
-  });
-
-  it("behandelt negative Zinssätze sicher (liefert positive Rate)", () => {
-    // Bei negativem Zins wird keine 0 zurückgegeben, sondern eine Rate berechnet
-    // Der Test prüft nur, dass keine Exception geworfen wird
-    const rate = annuityPayment(100000, -3.7, 120);
-    expect(Number.isFinite(rate)).toBe(true);
-    expect(rate).toBeGreaterThan(0);
-  });
-});
 
 describe("annuLoan – Edge Cases", () => {
   it("behandelt K=0 korrekt", () => {
