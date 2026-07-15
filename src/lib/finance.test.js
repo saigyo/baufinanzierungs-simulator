@@ -363,8 +363,10 @@ describe("buildModels – Volltilger", () => {
     const vt = models.find((m) => m.key === "vt");
     expect(vt.rate2).toBeNull();
     expect(vt.rate1).toBeCloseTo(vt.rateMax, 8);
-    // Alle Raten sollten gleich sein
-    expect(vt.loan.payArr.every((p) => p === vt.rate1)).toBe(true);
+    // Alle positiven Raten sind gleich (nach vorzeitiger Tilgung wird payArr mit 0 aufgefüllt)
+    const positiv = vt.loan.payArr.filter((p) => p > 0);
+    expect(positiv.length).toBeGreaterThan(0);
+    positiv.forEach((p) => expect(p).toBeCloseTo(vt.rate1, 6));
   });
 
   it("Volltilger: Sondertilgung verkürzt die Laufzeit", () => {
@@ -441,14 +443,13 @@ describe("annuLoan – Edge Cases", () => {
   });
 
   it("behandelt Ziel-Restschuld > Darlehen korrekt", () => {
-    const loan = annuLoan(D, N, PHASEN, D + 100000);
+    const ziel = D + 100000;
+    const loan = annuLoan(D, N, PHASEN, ziel);
     expect(loan.restArr[0]).toBe(D);
-    // Bei Ziel > Darlehen ist die Rate 0, aber die Zinsen werden weiter berechnet
-    // Daher wächst die Restschuld um die Zinsen über die Laufzeit
-    // Der Test prüft nur, dass die Restschuld >= D ist
+    // Die Rate wird je Phase so kalibriert, dass die Restschuld am Ende
+    // genau das Ziel erreicht – auch wenn es über dem Darlehen liegt
     expect(loan.restArr[N]).toBeGreaterThanOrEqual(D);
-    // Und dass die Differenz zur ursprünglichen Ziel-Restschuld nicht zu groß ist
-    expect(loan.restArr[N]).toBeLessThan(D + 100000);
+    expect(Math.abs(loan.restArr[N] - ziel)).toBeLessThan(0.01);
   });
 });
 

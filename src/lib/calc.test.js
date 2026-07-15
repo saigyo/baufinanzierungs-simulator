@@ -12,31 +12,31 @@ import { DEFAULTS } from "./persistence.js";
 
 describe("computeCalc – Nebenkosten", () => {
   it("berechnet Grunderwerbsteuer je Bundesland korrekt", () => {
-    const inp = { bundesland: "Berlin", kaufpreis: 500000, eigenkapital: 0, makler: false, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", kaufpreis: 500000 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.grest).toBeCloseTo(500000 * 0.06, 2); // Berlin: 6%
   });
 
   it("berechnet Notarkosten (2%) korrekt", () => {
-    const inp = { bundesland: "Berlin", kaufpreis: 500000, eigenkapital: 0, makler: false, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", kaufpreis: 500000 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.notar).toBeCloseTo(500000 * 0.02, 2);
   });
 
   it("berechnet Maklerkosten korrekt", () => {
-    const inp = { bundesland: "Berlin", kaufpreis: 500000, eigenkapital: 0, makler: true, maklerProzent: 3.57, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", kaufpreis: 500000, makler: true, maklerProzent: 3.57 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.makler).toBeCloseTo(500000 * 0.0357, 2);
   });
 
   it("summiert Nebenkosten korrekt", () => {
-    const inp = { bundesland: "Berlin", kaufpreis: 500000, eigenkapital: 0, makler: true, maklerProzent: 3.57, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", kaufpreis: 500000, makler: true, maklerProzent: 3.57 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.nk).toBeCloseTo(result.grest + result.notar + result.makler, 2);
   });
 
   it("setzt Maklerkosten auf 0 wenn deaktiviert", () => {
-    const inp = { bundesland: "Berlin", kaufpreis: 500000, makler: false, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", kaufpreis: 500000, makler: false };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.makler).toBe(0);
   });
@@ -48,33 +48,33 @@ describe("computeCalc – Nebenkosten", () => {
 
 describe("computeCalc – Darlehen & Beleihungsauslauf", () => {
   it("berechnet Darlehen = Kaufpreis + NK - Eigenkapital", () => {
-    const inp = { kaufpreis: 500000, eigenkapital: 120000, bundesland: "Berlin", makler: false, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 500000, eigenkapital: 120000, bundesland: "Berlin", makler: false };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     const expectedNK = 500000 * (0.06 + 0.02); // 8%
     expect(result.darlehen).toBeCloseTo(500000 + expectedNK - 120000, 2);
   });
 
   it("begrenzt Darlehen auf >= 0", () => {
-    const inp = { kaufpreis: 100000, eigenkapital: 500000, bundesland: "Berlin", alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 100000, eigenkapital: 500000, bundesland: "Berlin" };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.darlehen).toBe(0);
   });
 
   it("berechnet Beleihungsauslauf (bla) korrekt", () => {
-    const inp = { kaufpreis: 500000, eigenkapital: 100000, bundesland: "Berlin", makler: false, alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 500000, eigenkapital: 100000, bundesland: "Berlin", makler: false };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     const expectedDarlehen = 500000 + result.nk - 100000;
     expect(result.bla).toBeCloseTo((expectedDarlehen / 500000) * 100, 2);
   });
 
   it("setzt bla auf 0 wenn Kaufpreis = 0", () => {
-    const inp = { kaufpreis: 0, eigenkapital: 0, bundesland: "Berlin", alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 0, eigenkapital: 0 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.bla).toBe(0);
   });
 
   it("berechnet jahre und nMonths korrekt", () => {
-    const inp = { alter: 38, rente: 67, bundesland: "Berlin" };
+    const inp = { ...DEFAULTS.inp, alter: 38, rente: 67 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.jahre).toBe(29);
     expect(result.nMonths).toBe(348);
@@ -87,26 +87,26 @@ describe("computeCalc – Darlehen & Beleihungsauslauf", () => {
 
 describe("computeCalc – Ziel-Restschuld & Sondertilgung", () => {
   it("begrenzt zielRest auf darlehen", () => {
-    const inp = { kaufpreis: 500000, eigenkapital: 0, zielRest: 1000000, bundesland: "Berlin", alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 500000, eigenkapital: 0, zielRest: 1000000 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.zielRest).toBe(result.darlehen);
     expect(result.zielGekappt).toBe(true);
   });
 
   it("setzt zielRest auf 0 wenn undefiniert", () => {
-    const inp = { kaufpreis: 500000, eigenkapital: 100000, bundesland: "Berlin", alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 500000, eigenkapital: 100000, zielRest: undefined };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.zielRest).toBe(0);
   });
 
   it("setzt klv auf 0 wenn zielRest = 0", () => {
-    const inp = { zielRest: 0, klvBeitrag: 100, bundesland: "Berlin", alter: 38, rente: 67, kaufpreis: 500000 };
+    const inp = { ...DEFAULTS.inp, zielRest: 0, klvBeitrag: 100 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.klv).toBe(0);
   });
 
   it("übernimmt sonderTilgung korrekt", () => {
-    const inp = { sonderTilgung: 5000, bundesland: "Berlin", alter: 38, rente: 67, kaufpreis: 500000 };
+    const inp = { ...DEFAULTS.inp, sonderTilgung: 5000 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
     expect(result.sonder).toBe(5000);
   });
@@ -154,14 +154,16 @@ describe("computeCalc – Belastungsquote & Modelle", () => {
   });
 
   it("erzeugt leeres models-Array wenn nMonths = 0", () => {
-    const inp = { alter: 70, rente: 67, bundesland: "Berlin" };
+    const inp = { ...DEFAULTS.inp, alter: 70, rente: 67 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.darlehen).toBeGreaterThan(0); // nur nMonths=0 ist Ursache
     expect(result.models).toEqual([]);
   });
 
   it("erzeugt leeres models-Array wenn darlehen = 0", () => {
-    const inp = { kaufpreis: 100000, eigenkapital: 500000, bundesland: "Berlin", alter: 38, rente: 67 };
+    const inp = { ...DEFAULTS.inp, kaufpreis: 100000, eigenkapital: 500000 };
     const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.nMonths).toBeGreaterThan(0); // nur darlehen=0 ist Ursache
     expect(result.models).toEqual([]);
   });
 });
@@ -235,21 +237,23 @@ describe("computeCalc – Chart-Daten", () => {
 /* ======================================================================== */
 
 describe("computeInvers – Nebenkostenquote", () => {
+  // nkQ/klv werden vor dem Early-Return berechnet; modus "vergleich"
+  // isoliert die Tests von der teuren Binärsuche.
   it("berechnet nkQ mit Makler korrekt", () => {
-    const inp = { bundesland: "Berlin", makler: true, maklerProzent: 3.57 };
-    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "max", [30, 35, 40]);
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", makler: true, maklerProzent: 3.57 };
+    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "vergleich", [30, 35, 40]);
     expect(result.nkQ).toBeCloseTo((6.0 + 2.0 + 3.57) / 100, 4);
   });
 
   it("berechnet nkQ ohne Makler korrekt", () => {
-    const inp = { bundesland: "Berlin", makler: false };
-    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "max", [30, 35, 40]);
+    const inp = { ...DEFAULTS.inp, bundesland: "Berlin", makler: false };
+    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "vergleich", [30, 35, 40]);
     expect(result.nkQ).toBeCloseTo((6.0 + 2.0) / 100, 4);
   });
 
   it("berechnet klv korrekt", () => {
-    const inp = { zielRest: 50000, klvBeitrag: 200 };
-    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "max", [30]);
+    const inp = { ...DEFAULTS.inp, zielRest: 50000, klvBeitrag: 200 };
+    const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "vergleich", [30]);
     expect(result.klv).toBe(200);
   });
 });
@@ -277,7 +281,7 @@ describe("computeInvers – Edge Cases", () => {
   });
 
   it("gibt korrekte jahre und g zurück", () => {
-    const inp = { alter: 38, rente: 67, einkommenPlus: 3 };
+    const inp = { ...DEFAULTS.inp, alter: 38, rente: 67, einkommenPlus: 3 };
     const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "max", [30]);
     expect(result.jahre).toBe(29);
     expect(result.g).toBeCloseTo(0.03, 4);
