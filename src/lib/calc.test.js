@@ -137,14 +137,15 @@ describe("computeCalc – Belastungsquote & Modelle", () => {
   });
 
   it("findet beste Modell (niedrigste Zinskosten)", () => {
-    const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 0);
-    if (result.beste) {
-      result.models
-        .filter(m => !m.infeasible && m.tragbar && m.key !== result.beste.key)
-        .forEach(m => {
-          expect(m.zinskosten).toBeGreaterThanOrEqual(result.beste.zinskosten);
-        });
-    }
+    // netto hoch genug, dass Modelle tragbar sind (mit DEFAULTS wäre beste = null)
+    const inp = { ...DEFAULTS.inp, netto: 8000 };
+    const result = computeCalc(inp, DEFAULTS.z, DEFAULTS.bsp, 0);
+    expect(result.beste).not.toBeNull();
+    const kandidaten = result.models.filter(m => !m.infeasible && m.tragbar);
+    expect(kandidaten.length).toBeGreaterThan(0);
+    kandidaten.forEach(m => {
+      expect(m.zinskosten).toBeGreaterThanOrEqual(result.beste.zinskosten);
+    });
   });
 
   it("setzt beste auf null wenn kein tragbares Modell", () => {
@@ -189,14 +190,12 @@ describe("computeCalc – Stress-Szenario", () => {
   it("Stress-Szenario erhöht Belastung bei Modellen mit Anschlussfinanzierung", () => {
     const result = computeCalc(DEFAULTS.inp, DEFAULTS.z, DEFAULTS.bsp, 2.0);
     const a10 = result.models.find(m => m.key === "a10");
-    if (a10?.stressBelastung) {
-      // Stress-Szenario sollte Belastung erhöhen oder gleich lassen (bei sehr kleinen Unterschieden)
-      expect(a10.stressBelastung).toBeGreaterThanOrEqual(a10.belastung - 0.001);
-      // Stress-Zinskosten sollten höher sein
-      if (a10.stressZinskosten !== undefined) {
-        expect(a10.stressZinskosten).toBeGreaterThan(a10.zinskosten);
-      }
-    }
+    expect(a10).toBeDefined();
+    expect(a10.stressBelastung).toBeDefined();
+    expect(a10.stressZinskosten).toBeDefined();
+    // Stress-Szenario sollte Belastung erhöhen oder gleich lassen (bei sehr kleinen Unterschieden)
+    expect(a10.stressBelastung).toBeGreaterThanOrEqual(a10.belastung - 0.001);
+    expect(a10.stressZinskosten).toBeGreaterThan(a10.zinskosten);
   });
 });
 
@@ -311,15 +310,15 @@ describe("computeInvers – Binärsuche (max. Kaufpreis)", () => {
   });
 
   it("capped bei sehr hohem Budget (CAP = 10M)", () => {
-    const inp = { ...DEFAULTS.inp, eigenkapital: 1000000, netto: 100000 };
+    // netto so hoch, dass selbst der CAP unter der Belastungsgrenze bleibt
+    const inp = { ...DEFAULTS.inp, eigenkapital: 1000000, netto: 500000 };
     const result = computeInvers(inp, DEFAULTS.z, DEFAULTS.bsp, "max", [30]);
-    result.rows.forEach(row => {
-      if (!row.infeasible) {
-        row.cells.forEach(cell => {
-          if (cell?.capped) expect(cell.P).toBe(10000000);
-        });
-      }
-    });
+    const capped = result.rows
+      .filter(row => !row.infeasible)
+      .flatMap(row => row.cells)
+      .filter(cell => cell?.capped);
+    expect(capped.length).toBeGreaterThan(0);
+    capped.forEach(cell => expect(cell.P).toBe(10000000));
   });
 
   it("behandelt KLV-Grenze korrekt", () => {
