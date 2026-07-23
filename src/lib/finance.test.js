@@ -87,6 +87,18 @@ describe("annuLoan", () => {
       expect(loan.restArr[i]).toBeLessThanOrEqual(loan.restArr[i - 1]);
     }
   });
+
+  it("liefert Monatszinsen (zinsArr), deren Summe den Gesamtzinsen entspricht", () => {
+    const loan = annuLoan(D, N, PHASEN);
+    expect(loan.zinsArr).toHaveLength(N);
+    const summe = loan.zinsArr.reduce((a, b) => a + b, 0);
+    expect(Math.abs(summe - loan.interest)).toBeLessThan(0.01);
+  });
+
+  it("erster Monatszins = Restschuld × Monatszins der ersten Phase", () => {
+    const loan = annuLoan(D, N, PHASEN);
+    expect(loan.zinsArr[0]).toBeCloseTo(D * (PHASEN[0].rate / 100 / 12), 6);
+  });
 });
 
 describe("annuLoan – Sondertilgung", () => {

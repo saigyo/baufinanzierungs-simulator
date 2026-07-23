@@ -18,7 +18,7 @@ export function annuityPayment(K, rateAnnual, months, residual = 0) {
  *  herunter; die Rate der Folgephase wird auf der reduzierten Restschuld neu kalibriert. */
 export function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
   let rest = K, interest = 0, done = 0;
-  const restArr = [K], payArr = [];
+  const restArr = [K], payArr = [], zinsArr = [];
   for (const ph of phases) {
     const m = Math.min(ph.months, n - done);
     if (m <= 0) break;
@@ -32,6 +32,7 @@ export function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
         rest = Math.max(rest - sonderJahr, Math.min(rest, ziel));
       restArr.push(rest);
       payArr.push(pay);
+      zinsArr.push(z);
       if (rest <= 0.5) break;
     }
     done += m;
@@ -40,7 +41,8 @@ export function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
   const tail = restArr[restArr.length - 1];
   while (restArr.length < n + 1) restArr.push(tail);
   while (payArr.length < n) payArr.push(0);
-  return { restArr, payArr, interest };
+  while (zinsArr.length < n) zinsArr.push(0);
+  return { restArr, payArr, zinsArr, interest };
 }
 
 export function addLoans(a, b) {
