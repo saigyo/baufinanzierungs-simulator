@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { eur, pct } from "./lib/format.js";
 import { CSS } from "./styles.js";
