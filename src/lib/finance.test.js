@@ -275,6 +275,24 @@ describe("buildModels – Bauspar-Modell", () => {
     const bsp = buildModels(D, N, Z, { ...BSP, ansparJahre: N / 12 }).find((m) => m.key === "bsp");
     expect(bsp.infeasible).toBe(true);
   });
+
+  it("Bauspar-Loan: Summe zinsArr + Abschlussgebühr = Gesamtzinsen", () => {
+    const bsp = buildModels(D, N, Z, BSP).find((m) => m.key === "bsp");
+    expect(bsp.loan.zinsArr).toHaveLength(N);
+    expect(bsp.loan.fee).toBeGreaterThan(0);
+    const s = bsp.loan.zinsArr.reduce((a, b) => a + b, 0);
+    expect(Math.abs(s + bsp.loan.fee - bsp.loan.interest)).toBeLessThan(0.01);
+  });
+
+  it("Nicht-Bauspar-Modelle: Summe zinsArr = Zinskosten, keine Gebühr", () => {
+    const models = buildModels(D, N, Z, BSP);
+    ["a10", "a15", "a20", "vt", "kfw"].forEach((key) => {
+      const m = models.find((x) => x.key === key);
+      const s = m.loan.zinsArr.reduce((a, b) => a + b, 0);
+      expect(Math.abs(s - m.loan.interest), key).toBeLessThan(0.01);
+      expect(m.loan.fee || 0).toBe(0);
+    });
+  });
 });
 
 /* ======================================================================== */

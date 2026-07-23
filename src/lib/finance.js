@@ -130,12 +130,13 @@ export function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
       const quote = bausparCfg.ansparQuote / 100;
       const S = (D * quote) / ansparM;
       const zinsM = (D * bausparCfg.vorausZins) / 100 / 12;
-      const restArr = [D], payArr = [];
+      const restArr = [D], payArr = [], zinsArr = [];
       let interest = 0;
       for (let i = 1; i <= ansparM; i++) {
         interest += zinsM;
         restArr.push(D - S * i); // Netto-Schuld = Vorausdarlehen − Bausparguthaben
         payArr.push(zinsM + S);
+        zinsArr.push(zinsM);
       }
       const sub = annuLoan(D * (1 - quote), nMonths - ansparM,
         [{ rate: bausparCfg.bausparZins, months: INF }],
@@ -143,8 +144,9 @@ export function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
       interest += sub.interest;
       sub.restArr.slice(1).forEach((r) => restArr.push(r));
       sub.payArr.forEach((p) => payArr.push(p));
+      sub.zinsArr.forEach((z) => zinsArr.push(z));
       const fee = D * 0.01; // Abschlussgebühr ~1 % der Bausparsumme
-      const loan = { restArr, payArr, interest: interest + fee };
+      const loan = { restArr, payArr, zinsArr, interest: interest + fee, fee };
       models.push({
         key: "bsp", name: "Bauspar-Kombimodell", short: "Bauspar-Kombi",
         zinsInfo: `${pct(bausparCfg.vorausZins)} → ${pct(bausparCfg.bausparZins)}`,
