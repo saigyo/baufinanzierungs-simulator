@@ -16,4 +16,7 @@ export const MODEL_COLORS = {
   vt: "#2E7D5B", kfw: "#C07A2E", bsp: "#A5524B",
 };
 
+// Zins-/Tilgungsanteil im Tilgungschart
+export const TILGUNG_COLORS = { zins: "#C4703A", tilgung: "#2E7D5B" };
+
 export const LIMIT_COLORS = ["#9DBBAA", "#5F8F77", "#2E5C46"];
