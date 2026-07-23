@@ -4,3 +4,6 @@ dist/
 *.log
 Bildschirmfoto *.png
 test-results.*
+
+# Visual-companion Brainstorm-Artefakte
+.superpowers/
