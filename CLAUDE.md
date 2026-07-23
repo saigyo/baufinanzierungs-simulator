@@ -21,13 +21,23 @@ Logik und UI sind in Module getrennt; **`src/lib/` ist React-frei** und direkt t
   Modell-/Limit-Farben (`MODEL_COLORS`, `LIMIT_COLORS`).
 - `src/lib/format.js` – Formatierer `eur`, `pct` (de-DE).
 - `src/lib/finance.js` – Finanzmathematik: `annuityPayment`, `annuLoan`, `addLoans`,
-  `buildModels` (erzeugt die sechs Modelle), `summarize` (Kennzahlen).
+  `buildModels` (erzeugt die sechs Modelle), `summarize` (Kennzahlen). `annuLoan`/`addLoans`
+  liefern neben `restArr`/`payArr` zusätzlich `zinsArr` (Zinsanteil je Monat); der
+  Bauspar-Loan trägt zudem `fee` (Abschlussgebühr, bereits in `interest` enthalten) –
+  Basis für den Tilgungsplan.
 - `src/lib/persistence.js` – `DEFAULTS`, `URL_KEYS`, `stateFromURL`, `stateToQuery`.
 - `src/lib/calc.js` – `computeCalc` (Modellvergleich inkl. Belastungsquoten, Stress, Charts)
   und `computeInvers` (Umkehr-Modus); pure Funktionen, im Orchestrator per `useMemo` gecacht.
+  Außerdem `tilgungsReihe(loan, nMonths, alterStart, startJahr)`: aggregiert einen
+  Modell-Loan zu einer Jahresreihe (`{ alter, jahr, rate, zins, tilgung, sonder, rest }`)
+  für den Tilgungsplan-Popup; `startJahr` wird als Parameter übergeben statt intern
+  `new Date()` aufzurufen, bleibt also rein.
 - `src/components/` – UI: `controls.jsx` (`Field`, `Num`), `InputPanel.jsx` (Sektionen 01–04),
   `ComparisonCharts.jsx` (beide LineCharts + Fokus-Render-Helfer), `ModelTable.jsx`
-  (Modellvergleich), `MaxPriceSection.jsx` (Umkehr-Modus), `Footer.jsx` (Annahmen/Disclaimer).
+  (Modellvergleich), `MaxPriceSection.jsx` (Umkehr-Modus), `TilgungsplanModal.jsx`
+  (Tilgungsplan-Popup je Modell: gestapeltes Balken-Chart Zins/Tilgung ⇄ Tabelle,
+  aus dem Modellvergleich per „Tilgungsplan"-Button erreichbar), `Footer.jsx`
+  (Annahmen/Disclaimer).
 - `src/BaufinanzierungsSimulator.jsx` – schlanker Orchestrator: State, URL-Sync,
   Fokus-Modus (`fokus` ist geteilt zwischen Diagrammen und Tabelle, lebt deshalb hier),
   KPI-Kacheln, Banner, Empfehlung.
@@ -67,6 +77,11 @@ statt Festwerten.
 - **Umkehr-Modus** (`modus === "max"`): Binärsuche über den Kaufpreis pro Modell und
   Belastungsgrenze (`limits`), prüft die Spitzen-Belastungsquote. Darlehen
   `D = P·(1+Nebenkostenquote) − Eigenkapital`. Ergebnis auf 1 000 € abgerundet.
+- **Tilgungsplan** (`TilgungsplanModal`, je Modellzeile per Button erreichbar): zeigt
+  Zins- und Tilgungsanteil je Jahr (x-Achse = Kalenderjahr, nicht Laufzeitjahr) als
+  gestapeltes Balken-Chart bzw. als Tabelle inkl. Sondertilgungs-Spalte (falls > 0)
+  und Summenzeile; Datengrundlage ist `tilgungsReihe`. Der Renteneintritt entspricht
+  nicht zwingend dem Laufzeitende, wenn eine Ziel-Restschuld > 0 vorgegeben ist.
 - **URL-Persistenz**: Alle Eingaben werden via `history.replaceState` in Query-Parametern
   gespiegelt (`stateToQuery`) und beim Laden wiederhergestellt (`stateFromURL`).
   Defaults erzeugen keine Parameter; ungültige Werte fallen auf `DEFAULTS` zurück.

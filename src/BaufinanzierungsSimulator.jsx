@@ -10,6 +10,7 @@ import InputPanel from "./components/InputPanel.jsx";
 import MaxPriceSection from "./components/MaxPriceSection.jsx";
 import ModelTable from "./components/ModelTable.jsx";
 import ComparisonCharts from "./components/ComparisonCharts.jsx";
+import TilgungsplanModal from "./components/TilgungsplanModal.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Haupt-Komponente                                                   */
@@ -21,6 +22,8 @@ export default function BaufinanzierungsSimulator() {
   const [z, setZ] = useState(init.z);
   const [bsp, setBsp] = useState(init.bsp);
   const [detail, setDetail] = useState(null);
+  const [tilgungsplanKey, setTilgungsplanKey] = useState(null);
+  const [startJahr] = useState(() => new Date().getFullYear());
   const [fokus, setFokus] = useState(null); // hervorgehobenes Modell in den Vergleichsdiagrammen
   const [modus, setModus] = useState(init.modus); // "vergleich" | "max"
   const [limits, setLimits] = useState(init.limits);
@@ -150,7 +153,8 @@ export default function BaufinanzierungsSimulator() {
                 stressDelta={calc.stressDelta} anschluss={z.anschluss}
                 klv={calc.klv} g={calc.g} zielRest={calc.zielRest} sonder={calc.sonder}
                 fokusKey={fokusKey} onToggleFokus={toggleFokus}
-                detail={detail} setDetail={setDetail} />
+                detail={detail} setDetail={setDetail}
+                onTilgungsplan={setTilgungsplanKey} />
             </>
           )}
           </>)}
@@ -162,6 +166,14 @@ export default function BaufinanzierungsSimulator() {
           <Footer />
         </main>
       </div>
+
+      {(() => {
+        const tp = tilgungsplanKey ? models.find((m) => m.key === tilgungsplanKey && !m.infeasible) : null;
+        return tp ? (
+          <TilgungsplanModal model={tp} inp={inp} nMonths={calc.nMonths}
+            alterStart={inp.alter} startJahr={startJahr} onClose={() => setTilgungsplanKey(null)} />
+        ) : null;
+      })()}
     </div>
   );
 }

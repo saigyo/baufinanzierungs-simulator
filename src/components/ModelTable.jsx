@@ -9,7 +9,7 @@ import { eur, pct } from "../lib/format.js";
 
 export default function ModelTable({
   models, beste, stressDelta, anschluss, klv, g, zielRest, sonder,
-  fokusKey, onToggleFokus, detail, setDetail,
+  fokusKey, onToggleFokus, detail, setDetail, onTilgungsplan,
 }) {
   return (
     <section className="bf-panel">
@@ -68,9 +68,14 @@ export default function ModelTable({
                 )}
                 <td>
                   {!m.infeasible && (
-                    <button className="bf-mini" onClick={(e) => { e.stopPropagation(); setDetail(detail === m.key ? null : m.key); }}>
-                      {detail === m.key ? "−" : "Info"}
-                    </button>
+                    <div className="bf-row-actions">
+                      <button className="bf-mini" onClick={(e) => { e.stopPropagation(); onTilgungsplan(m.key); }}>
+                        Tilgungsplan
+                      </button>
+                      <button className="bf-mini" onClick={(e) => { e.stopPropagation(); setDetail(detail === m.key ? null : m.key); }}>
+                        {detail === m.key ? "−" : "Info"}
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
