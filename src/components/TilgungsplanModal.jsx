@@ -2,7 +2,7 @@
 /*  Tilgungsplan-Popup je Modell: Chart (Zins/Tilgung) ⇄ Tabelle       */
 /* ------------------------------------------------------------------ */
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
