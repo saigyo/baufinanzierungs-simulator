@@ -106,7 +106,7 @@ export const CSS = `
 @media (prefers-reduced-motion: no-preference){.bf-panel,.bf-best,.bf-kpi{transition:border-color .15s}}
 .bf-row-actions{display:flex;gap:6px;justify-content:flex-end}
 .bf-modal-backdrop{position:fixed;inset:0;background:rgba(28,40,38,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
-.bf-modal{background:var(--panel);border:1px solid var(--line);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(28,40,38,.28)}
+.bf-modal{background:var(--panel);border:1px solid var(--line);max-width:960px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(28,40,38,.28)}
 .bf-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:15px 16px 14px 18px;border-bottom:1px solid var(--line)}
 .bf-modal-head h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0;line-height:1.25}
 .bf-modal-sub{font-size:12px;color:var(--muted);margin:3px 0 0}

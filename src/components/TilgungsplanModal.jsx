@@ -62,7 +62,7 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
                 <XAxis dataKey="jahr" ticks={tickJahre} interval={0}
                   tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
                   label={{ value: "Jahr", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
-                <YAxis tickFormatter={(v) => (v / 1000) + "k"} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }} width={52} />
+                <YAxis tickFormatter={(v) => eur(v)} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }} width={74} />
                 <Tooltip
                   formatter={(v, name) => [eur(v), name === "zins" ? "Zins" : "Tilgung"]}
                   labelFormatter={(jahr, payload) => {
