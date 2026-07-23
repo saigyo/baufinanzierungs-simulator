@@ -104,4 +104,20 @@ export const CSS = `
 
 .bf-footer{margin-top:18px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 @media (prefers-reduced-motion: no-preference){.bf-panel,.bf-best,.bf-kpi{transition:border-color .15s}}
+.bf-row-actions{display:flex;gap:6px;justify-content:flex-end}
+.bf-modal-backdrop{position:fixed;inset:0;background:rgba(28,40,38,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.bf-modal{background:var(--panel);border:1px solid var(--line);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(28,40,38,.28)}
+.bf-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.bf-modal-head h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0}
+.bf-modal-sub{font-size:12px;color:var(--muted);margin:3px 0 0}
+.bf-modal-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.bf-toggle{display:flex;border:1px solid var(--line);background:#FBFCFB}
+.bf-toggle button{font:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:5px 12px;border:none;background:transparent;cursor:pointer;color:var(--muted)}
+.bf-toggle button.on{background:var(--ink);color:#fff}
+.bf-modal-x{border:1px solid var(--line);background:#FBFCFB;font:inherit;font-size:14px;line-height:1;padding:5px 9px;cursor:pointer;color:var(--muted)}
+.bf-modal-body{padding:16px 18px;overflow-y:auto}
+.bf-tp-table tfoot td{border-top:2px solid var(--line);font-weight:700}
+.bf-tp-zins{color:#C4703A}
+.bf-tp-tilg{color:#2E7D5B}
+.bf-tp-note{font-size:12px;color:var(--muted);line-height:1.5;background:#FAF3EC;border:1px solid #ECDCC9;border-left:3px solid #C4703A;padding:10px 12px;margin:14px 0 0}
 `;
