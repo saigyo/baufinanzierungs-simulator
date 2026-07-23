@@ -107,14 +107,14 @@ export const CSS = `
 .bf-row-actions{display:flex;gap:6px;justify-content:flex-end}
 .bf-modal-backdrop{position:fixed;inset:0;background:rgba(28,40,38,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
 .bf-modal{background:var(--panel);border:1px solid var(--line);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(28,40,38,.28)}
-.bf-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.bf-modal-head h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0}
+.bf-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:15px 16px 14px 18px;border-bottom:1px solid var(--line)}
+.bf-modal-head h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0;line-height:1.25}
 .bf-modal-sub{font-size:12px;color:var(--muted);margin:3px 0 0}
-.bf-modal-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.bf-toggle{display:flex;border:1px solid var(--line);background:#FBFCFB}
-.bf-toggle button{font:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:5px 12px;border:none;background:transparent;cursor:pointer;color:var(--muted)}
-.bf-toggle button.on{background:var(--ink);color:#fff}
-.bf-modal-x{border:1px solid var(--line);background:#FBFCFB;font:inherit;font-size:14px;line-height:1;padding:5px 9px;cursor:pointer;color:var(--muted)}
+.bf-modal-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.bf-vtoggle{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:#FBFCFB}
+.bf-vtoggle button{font:inherit;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:0 10px;height:24px;border:none;background:transparent;cursor:pointer;color:var(--muted)}
+.bf-vtoggle button.on{background:var(--ink);color:#fff}
+.bf-modal-x{border:1px solid var(--line);border-radius:3px;background:#FBFCFB;font:inherit;font-size:12px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:var(--muted)}
 .bf-modal-body{padding:16px 18px;overflow-y:auto}
 .bf-tp-table tfoot td{border-top:2px solid var(--line);font-weight:700}
 .bf-tp-zins{color:#C4703A}
