@@ -109,10 +109,20 @@ describe("annuLoan – Sondertilgung", () => {
     expect(tilgungsMonat(base)).toBe(N);
   });
 
-  it("unterschreitet die Ziel-Restschuld per Sondertilgung nicht", () => {
-    const loan = annuLoan(D, N, PHASEN, 80000, 50000);
-    expect(Math.min(...loan.restArr)).toBeGreaterThanOrEqual(0);
-    expect(loan.restArr[N]).toBeLessThanOrEqual(80000 + 0.01);
+  it("senkt die Restschuld als freiwillige Mehrtilgung unter die Ziel-Restschuld", () => {
+    // Die ziel-Deckelung greift nur für den Sondertilgungs-Schlag selbst
+    // (er springt in einem Schritt nicht unter `ziel`). Die regulär auf `ziel`
+    // kalibrierte Annuität tilgt zusätzlich weiter, sodass die Gesamt-Restschuld
+    // `ziel` durchaus unterschreitet – Sondertilgung ist freiwillige Mehrtilgung.
+    const ohne = annuLoan(D, N, PHASEN, 80000, 0);
+    const mit = annuLoan(D, N, PHASEN, 80000, 5000);
+    expect(ohne.restArr[N]).toBeCloseTo(80000, 4); // ohne Sonder: exakt auf ziel kalibriert
+    expect(mit.restArr[N]).toBeLessThan(80000); // mit Sonder: klar darunter
+    // Gegenprobe der Invariante: Sondertilgung verlangsamt die Tilgung zu keinem
+    // Zeitpunkt (jede monatliche Restschuld liegt höchstens so hoch wie ohne).
+    for (let i = 0; i < ohne.restArr.length; i++) {
+      expect(mit.restArr[i]).toBeLessThanOrEqual(ohne.restArr[i] + 1e-6);
+    }
   });
 
   it("zahlt nach vollständiger Tilgung keine Raten mehr", () => {
@@ -349,10 +359,34 @@ describe("buildModels – KfW-Kombi", () => {
   });
 
   it("KfW-Kombi: Sondertilgung fließt nur ins Hauptdarlehen", () => {
-    // Bei D > 100k sollte Sondertilgung nur im Hauptdarlehen wirken
-    const base = buildModels(D, N, Z, BSP, 0, 0).find((m) => m.key === "kfw");
-    const withSonder = buildModels(D, N, Z, BSP, 0, 5000).find((m) => m.key === "kfw");
-    expect(withSonder.loan.interest).toBeLessThan(base.loan.interest);
+    // Bei D > 100k muss die Sondertilgung ausschließlich im Hauptdarlehen wirken,
+    // nicht im KfW-Baustein. Gegenrechnung: KfW-Teil ohne, Hauptdarlehen mit Sonder.
+    const sonder = 5000;
+    const kfw = buildModels(D, N, Z, BSP, 0, sonder).find((m) => m.key === "kfw");
+    const kfwTeil = annuLoan(100000, N, [
+      { rate: Z.kfw, months: 120 },
+      { rate: Z.anschluss, months: Infinity },
+    ], 0, 0);
+    const haupt = annuLoan(D - 100000, N, [
+      { rate: Z.z15, months: 180 },
+      { rate: Z.anschluss, months: Infinity },
+    ], 0, sonder);
+    const erwartet = addLoans(kfwTeil, haupt);
+    expect(kfw.loan.interest).toBeCloseTo(erwartet.interest, 6);
+    expect(kfw.loan.restArr[N]).toBeCloseTo(erwartet.restArr[N], 6);
+    // Diskriminierende Gegenprobe: würde die Sondertilgung stattdessen in den
+    // KfW-Baustein fließen, ergäbe sich eine deutlich andere Zinssumme – die
+    // obige Übereinstimmung belegt daher die Routing-Richtung, nicht nur, dass
+    // die Zinsen überhaupt sinken.
+    const kfwFalsch = annuLoan(100000, N, [
+      { rate: Z.kfw, months: 120 },
+      { rate: Z.anschluss, months: Infinity },
+    ], 0, sonder);
+    const hauptFalsch = annuLoan(D - 100000, N, [
+      { rate: Z.z15, months: 180 },
+      { rate: Z.anschluss, months: Infinity },
+    ], 0, 0);
+    expect(addLoans(kfwFalsch, hauptFalsch).interest).not.toBeCloseTo(erwartet.interest, 0);
   });
 
   it("KfW-Kombi: KfW-Teil auf 100.000 € gedeckelt", () => {
