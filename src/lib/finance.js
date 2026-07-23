@@ -47,10 +47,13 @@ export function annuLoan(K, n, phases, ziel = 0, sonderJahr = 0) {
 
 export function addLoans(a, b) {
   const n = Math.max(a.restArr.length, b.restArr.length);
-  const restArr = [], payArr = [];
+  const restArr = [], payArr = [], zinsArr = [];
   for (let i = 0; i < n; i++) restArr.push((a.restArr[i] || 0) + (b.restArr[i] || 0));
-  for (let i = 0; i < n - 1; i++) payArr.push((a.payArr[i] || 0) + (b.payArr[i] || 0));
-  return { restArr, payArr, interest: a.interest + b.interest };
+  for (let i = 0; i < n - 1; i++) {
+    payArr.push((a.payArr[i] || 0) + (b.payArr[i] || 0));
+    zinsArr.push((a.zinsArr[i] || 0) + (b.zinsArr[i] || 0));
+  }
+  return { restArr, payArr, zinsArr, interest: a.interest + b.interest };
 }
 
 export function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {

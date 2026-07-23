@@ -157,6 +157,18 @@ describe("addLoans", () => {
     expect(sum.restArr[200]).toBeCloseTo(a.restArr[200] + b.restArr[200], 8);
     expect(sum.payArr[0]).toBeCloseTo(a.payArr[0] + b.payArr[0], 8);
   });
+
+  it("summiert zinsArr beider Darlehen und trifft die Gesamtzinsen", () => {
+    const a = annuLoan(100000, N, [{ rate: 3.4, months: 120 }, { rate: 4.2, months: Infinity }]);
+    const b = annuLoan(300000, N, [{ rate: 3.7, months: 180 }, { rate: 4.2, months: Infinity }]);
+    const sum = addLoans(a, b);
+    expect(sum.zinsArr).toHaveLength(N);
+    for (let i = 0; i < N; i++) {
+      expect(sum.zinsArr[i]).toBeCloseTo((a.zinsArr[i] || 0) + (b.zinsArr[i] || 0), 8);
+    }
+    const s = sum.zinsArr.reduce((x, y) => x + y, 0);
+    expect(Math.abs(s - sum.interest)).toBeLessThan(0.01);
+  });
 });
 
 describe("buildModels", () => {
