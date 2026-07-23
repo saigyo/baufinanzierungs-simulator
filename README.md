@@ -5,6 +5,8 @@ mit dem Ziel, dass die Finanzierung zum Renteneintritt getilgt ist oder auf eine
 definierte Ziel-Restschuld zurückgeführt wird (Ablösung z. B. durch eine fällige
 Kapitallebensversicherung).
 
+**Live-Demo:** https://saigyo.github.io/baufinanzierungs-simulator/
+
 ## Features
 
 - **Sechs Modelle im Vergleich:** Annuitätendarlehen (10/15/20 J. Zinsbindung mit
