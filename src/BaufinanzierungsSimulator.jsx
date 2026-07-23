@@ -42,6 +42,16 @@ export default function BaufinanzierungsSimulator() {
   const { models, beste } = calc;
   const warnBLA = calc.bla > 100;
 
+  // Tilgungsplan-Modal schließen, sobald sein Modell ungültig wird: beim Wechsel weg vom
+  // Modellvergleich oder wenn das Zielmodell nicht mehr verfügbar/darstellbar ist. Verhindert,
+  // dass das Modal im „Maximaler Kaufpreis"-Modus stehen bleibt oder nach Eingabeänderungen
+  // ohne erneuten Klick wieder auftaucht.
+  useEffect(() => {
+    if (tilgungsplanKey && (modus !== "vergleich" || !models.some((m) => m.key === tilgungsplanKey && !m.infeasible))) {
+      setTilgungsplanKey(null);
+    }
+  }, [tilgungsplanKey, modus, models]);
+
   /* Fokus-Modus: Klick auf Kurve, Legende oder eine Zeile im Modellvergleich hebt ein Modell
      hervor und dimmt die übrigen – in beiden Diagrammen und in der Tabelle; erneuter Klick
      (oder Klick ins Diagramm) setzt zurück. Render-Helfer: components/ComparisonCharts.jsx. */
