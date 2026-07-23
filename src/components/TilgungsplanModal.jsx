@@ -23,8 +23,11 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
   const tickJahre = rows
     .filter((r, i) => i === 0 || i === rows.length - 1 || r.jahr % 5 === 0)
     .map((r) => r.jahr);
+  // Nur positive Sondertilgungen aufsummieren: der leicht negative Ausgleichswert im
+  // Ablösejahr (siehe tilgungsReihe) ist keine echte Sondertilgung und wird in der Spalte
+  // als „—" ausgeblendet – die Summe muss zur sichtbaren Spalte passen, nicht darunter liegen.
   const summe = rows.reduce(
-    (a, r) => ({ rate: a.rate + r.rate, zins: a.zins + r.zins, tilgung: a.tilgung + r.tilgung, sonder: a.sonder + r.sonder }),
+    (a, r) => ({ rate: a.rate + r.rate, zins: a.zins + r.zins, tilgung: a.tilgung + r.tilgung, sonder: a.sonder + Math.max(0, r.sonder) }),
     { rate: 0, zins: 0, tilgung: 0, sonder: 0 }
   );
 
@@ -102,7 +105,7 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
                     <td className="bf-num">{eur(summe.rate)}</td>
                     <td className="bf-num bf-tp-zins">{eur(summe.zins)}</td>
                     <td className="bf-num bf-tp-tilg">{eur(summe.tilgung)}</td>
-                    {zeigeSonder && <td className="bf-num">{eur(Math.max(0, summe.sonder))}</td>}
+                    {zeigeSonder && <td className="bf-num">{eur(summe.sonder)}</td>}
                     <td className="bf-num">{eur(rows.length ? rows[rows.length - 1].rest : 0)}</td>
                   </tr>
                 </tfoot>
