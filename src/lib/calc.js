@@ -132,3 +132,28 @@ export function computeInvers(inp, z, bsp, modus, limits) {
   });
   return { nkQ, klv, rows, jahre, g };
 }
+
+/** Jahres-Tilgungsplan eines Modell-Loans: aggregiert je Jahr Rate, Zins,
+ *  (reguläre) Tilgung, Sondertilgung (Jahresend-Schlag) und Restschuld.
+ *  Rein und deterministisch – `startJahr` wird als Parameter übergeben. */
+export function tilgungsReihe(loan, nMonths, alterStart, startJahr) {
+  const rows = [];
+  const jahre = Math.ceil(nMonths / 12);
+  for (let y = 0; y < jahre; y++) {
+    const von = y * 12;
+    const bis = Math.min(von + 12, nMonths);
+    let zins = 0, tilgung = 0, rate = 0;
+    for (let m = von; m < bis; m++) {
+      const z = loan.zinsArr[m] || 0;
+      const p = loan.payArr[m] || 0;
+      zins += z;
+      tilgung += p - z; // reguläre Tilgung
+      rate += p;
+    }
+    const restVor = loan.restArr[Math.min(von, loan.restArr.length - 1)];
+    const rest = loan.restArr[Math.min(bis, loan.restArr.length - 1)];
+    const sonder = (restVor - rest) - tilgung; // Jahresend-Sondertilgung
+    rows.push({ alter: alterStart + y, jahr: startJahr + y, rate, zins, tilgung, sonder, rest });
+  }
+  return rows;
+}

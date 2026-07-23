@@ -3,7 +3,8 @@
 /* ------------------------------------------------------------------ */
 
 import { describe, expect, it } from "vitest";
-import { computeCalc, computeInvers } from "./calc.js";
+import { computeCalc, computeInvers, tilgungsReihe } from "./calc.js";
+import { buildModels } from "./finance.js";
 import { DEFAULTS } from "./persistence.js";
 
 /* ======================================================================== */
@@ -345,5 +346,49 @@ describe("computeInvers – Binärsuche (max. Kaufpreis)", () => {
         });
       }
     });
+  });
+});
+
+/* ======================================================================== */
+/*  tilgungsReihe – Jahres-Tilgungsplan                                    */
+/* ======================================================================== */
+
+describe("tilgungsReihe", () => {
+  const D = 437850, N = 348;
+
+  it("aggregiert Jahreswerte konsistent (Summenbilanz, Rest, Labels)", () => {
+    const m = buildModels(D, N, DEFAULTS.z, DEFAULTS.bsp, 0, 0).find((x) => x.key === "a15");
+    const rows = tilgungsReihe(m.loan, N, 38, 2026);
+    expect(rows).toHaveLength(N / 12);
+    expect(rows[0].jahr).toBe(2026);
+    expect(rows[0].alter).toBe(38);
+    expect(rows[rows.length - 1].jahr).toBe(2026 + N / 12 - 1);
+    const sumZ = rows.reduce((a, r) => a + r.zins, 0);
+    const sumT = rows.reduce((a, r) => a + r.tilgung, 0);
+    const sumS = rows.reduce((a, r) => a + r.sonder, 0);
+    expect(Math.abs(sumZ - m.loan.interest)).toBeLessThan(1);
+    expect(Math.abs(sumT + sumS - D)).toBeLessThan(1); // ziel = 0
+    for (let i = 1; i < rows.length; i++) expect(rows[i].rest).toBeLessThanOrEqual(rows[i - 1].rest);
+    expect(rows[rows.length - 1].rest).toBeCloseTo(0, 0);
+    rows.forEach((r) => expect(r.rate).toBeCloseTo(r.zins + r.tilgung, 6));
+  });
+
+  it("respektiert die Ziel-Restschuld am Laufzeitende", () => {
+    const ziel = 50000;
+    const m = buildModels(D, N, DEFAULTS.z, DEFAULTS.bsp, ziel, 0).find((x) => x.key === "vt");
+    const rows = tilgungsReihe(m.loan, N, 38, 2026);
+    expect(rows[rows.length - 1].rest).toBeCloseTo(ziel, 0);
+    const sumT = rows.reduce((a, r) => a + r.tilgung, 0);
+    const sumS = rows.reduce((a, r) => a + r.sonder, 0);
+    expect(Math.abs(sumT + sumS - (D - ziel))).toBeLessThan(1);
+  });
+
+  it("weist Sondertilgung im jeweiligen Jahr aus", () => {
+    const m = buildModels(D, N, DEFAULTS.z, DEFAULTS.bsp, 0, 5000).find((x) => x.key === "vt");
+    const rows = tilgungsReihe(m.loan, N, 38, 2026);
+    const sumS = rows.reduce((a, r) => a + r.sonder, 0);
+    expect(sumS).toBeGreaterThan(0);
+    const sumT = rows.reduce((a, r) => a + r.tilgung, 0);
+    expect(Math.abs(sumT + sumS - D)).toBeLessThan(2);
   });
 });
