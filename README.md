@@ -9,6 +9,12 @@ Kapitallebensversicherung).
 
 ![Screenshot: Modellvergleich mit Empfehlung, Restschuld- und Belastungsdiagramm](docs/screenshot.png)
 
+*Modellvergleich – sechs Finanzierungsmodelle mit Empfehlung, Restschuld- und Belastungsverlauf.*
+
+![Screenshot: Umkehr-Modus „Maximaler Kaufpreis" je Belastungsgrenze](docs/screenshot-max-kaufpreis.png)
+
+*Umkehr-Modus „Maximaler Kaufpreis" – höchster tragbarer Kaufpreis je Modell und Belastungsgrenze.*
+
 ## Features
 
 - **Sechs Modelle im Vergleich:** Annuitätendarlehen (10/15/20 J. Zinsbindung mit
