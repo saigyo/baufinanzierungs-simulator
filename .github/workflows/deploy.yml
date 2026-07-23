@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein Deployment gleichzeitig; laufende werden nicht abgebrochen,
+# damit ein begonnenes Rollout sauber zu Ende läuft.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Unit-Tests
+        run: npm test
+
+      - name: Produktions-Build
+        # Basis-Pfad = Repo-Name, da das Projekt unter
+        # https://saigyo.github.io/baufinanzierungs-simulator/ ausgeliefert wird.
+        run: npm run build -- --base=/baufinanzierungs-simulator/
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
