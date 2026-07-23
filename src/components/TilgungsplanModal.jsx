@@ -97,7 +97,7 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
                     <td className="bf-num">{eur(summe.rate)}</td>
                     <td className="bf-num bf-tp-zins">{eur(summe.zins)}</td>
                     <td className="bf-num bf-tp-tilg">{eur(summe.tilgung)}</td>
-                    {zeigeSonder && <td className="bf-num">{eur(summe.sonder)}</td>}
+                    {zeigeSonder && <td className="bf-num">{eur(Math.max(0, summe.sonder))}</td>}
                     <td className="bf-num">{eur(rows.length ? rows[rows.length - 1].rest : 0)}</td>
                   </tr>
                 </tfoot>

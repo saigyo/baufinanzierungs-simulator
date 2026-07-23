@@ -391,4 +391,14 @@ describe("tilgungsReihe", () => {
     const sumT = rows.reduce((a, r) => a + r.tilgung, 0);
     expect(Math.abs(sumT + sumS - D)).toBeLessThan(2);
   });
+
+  it("erfüllt zeilenweise tilgung + sonder = Restschuld-Differenz (fängt versehentliches Clampen)", () => {
+    const m = buildModels(D, N, DEFAULTS.z, DEFAULTS.bsp, 0, 5000).find((x) => x.key === "vt");
+    const rows = tilgungsReihe(m.loan, N, 38, 2026);
+    let restVor = D; // D und N sind im describe-Scope definiert
+    for (const r of rows) {
+      expect(r.tilgung + r.sonder).toBeCloseTo(restVor - r.rest, 6);
+      restVor = r.rest;
+    }
+  });
 });
