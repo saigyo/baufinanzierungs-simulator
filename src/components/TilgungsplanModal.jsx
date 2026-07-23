@@ -19,6 +19,10 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
   );
   const zeigeSonder = (inp.sonderTilgung || 0) > 0 && rows.some((r) => r.sonder > 0.5);
   const isBsp = model.key === "bsp";
+  // X-Achse ausdünnen: erstes, letztes und jedes durch 5 teilbare Jahr (sonst laufen die Labels zusammen)
+  const tickJahre = rows
+    .filter((r, i) => i === 0 || i === rows.length - 1 || r.jahr % 5 === 0)
+    .map((r) => r.jahr);
   const summe = rows.reduce(
     (a, r) => ({ rate: a.rate + r.rate, zins: a.zins + r.zins, tilgung: a.tilgung + r.tilgung, sonder: a.sonder + r.sonder }),
     { rate: 0, zins: 0, tilgung: 0, sonder: 0 }
@@ -40,7 +44,7 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
             <p className="bf-modal-sub">Zins- und Tilgungsanteil pro Jahr über die Laufzeit</p>
           </div>
           <div className="bf-modal-actions">
-            <div className="bf-toggle" role="tablist">
+            <div className="bf-vtoggle" role="tablist">
               <button role="tab" aria-selected={view === "chart"} className={view === "chart" ? "on" : ""}
                 onClick={() => setView("chart")}>Chart</button>
               <button role="tab" aria-selected={view === "tabelle"} className={view === "tabelle" ? "on" : ""}
@@ -55,7 +59,8 @@ export default function TilgungsplanModal({ model, inp, nMonths, alterStart, sta
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={rows} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}>
                 <CartesianGrid stroke="#D8DEDA" strokeDasharray="2 4" vertical={false} />
-                <XAxis dataKey="jahr" tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
+                <XAxis dataKey="jahr" ticks={tickJahre} interval={0}
+                  tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }}
                   label={{ value: "Jahr", position: "insideBottomRight", offset: -2, fontSize: 11 }} />
                 <YAxis tickFormatter={(v) => (v / 1000) + "k"} tick={{ fontFamily: "IBM Plex Mono", fontSize: 11 }} width={52} />
                 <Tooltip
