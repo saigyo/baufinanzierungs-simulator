@@ -7,6 +7,8 @@ Kapitallebensversicherung).
 
 **Live-Demo:** https://saigyo.github.io/baufinanzierungs-simulator/
 
+![Screenshot: Modellvergleich mit Empfehlung, Restschuld- und Belastungsdiagramm](docs/screenshot.png)
+
 ## Features
 
 - **Sechs Modelle im Vergleich:** Annuitätendarlehen (10/15/20 J. Zinsbindung mit
