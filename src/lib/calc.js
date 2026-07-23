@@ -152,7 +152,11 @@ export function tilgungsReihe(loan, nMonths, alterStart, startJahr) {
     }
     const restVor = loan.restArr[Math.min(von, loan.restArr.length - 1)];
     const rest = loan.restArr[Math.min(bis, loan.restArr.length - 1)];
-    const sonder = (restVor - rest) - tilgung; // Jahresend-Sondertilgung
+    // Bewusst NICHT auf >=0 geklammert: die Identität tilgung + sonder = restVor - rest
+    // muss exakt gelten (Summe teleskopiert zu Darlehen - ziel). Ein kleiner negativer
+    // Ausgleich im Ablösejahr (Monats-Clamp in annuLoan) ist gewollt; ein Math.max(0, ...)
+    // würde die Summenbilanz-Invariante brechen. Die Anzeige floort separat (> 0.5 -> "—").
+    const sonder = (restVor - rest) - tilgung; // Jahresend-Sondertilgung (im Ablösejahr leicht negativ möglich)
     rows.push({ alter: alterStart + y, jahr: startJahr + y, rate, zins, tilgung, sonder, rest });
   }
   return rows;

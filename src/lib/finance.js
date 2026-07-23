@@ -144,7 +144,7 @@ export function buildModels(D, nMonths, z, bausparCfg, ziel = 0, sonder = 0) {
       interest += sub.interest;
       sub.restArr.slice(1).forEach((r) => restArr.push(r));
       sub.payArr.forEach((p) => payArr.push(p));
-      sub.zinsArr.forEach((z) => zinsArr.push(z));
+      sub.zinsArr.forEach((zi) => zinsArr.push(zi));
       const fee = D * 0.01; // Abschlussgebühr ~1 % der Bausparsumme
       const loan = { restArr, payArr, zinsArr, interest: interest + fee, fee };
       models.push({
