@@ -2,8 +2,6 @@
 /*  Modellvergleich-Tabelle (inkl. Fokus-Modus und Stress-Spalte)      */
 /* ------------------------------------------------------------------ */
 
-import React from "react";
-
 import { MODEL_COLORS } from "../lib/constants.js";
 import { eur, pct } from "../lib/format.js";
 
