@@ -16,13 +16,14 @@ export const CSS = `
 .bf-root h1,.bf-root h2,.bf-root h3{font-family:'Archivo',sans-serif;margin:0}
 
 /* Schriftfeld */
-.bf-titleblock{display:flex;justify-content:space-between;align-items:stretch;gap:16px;
+.bf-titleblock{display:flex;justify-content:space-between;align-items:stretch;
   border:1.5px solid var(--ink);background:var(--panel);margin-bottom:18px}
 .bf-tb-main{padding:14px 18px;border-right:1.5px solid var(--ink);flex:1}
 .bf-tb-main h1{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.01em;text-transform:uppercase}
 .bf-tb-sub{margin:2px 0 0;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px}
 .bf-tb-meta{display:flex}
 .bf-tb-meta>div{padding:10px 16px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;min-width:86px}
+.bf-tb-meta>div:first-child{border-left:none}
 .bf-tb-meta span{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .bf-tb-meta strong{font-family:'IBM Plex Mono',monospace;font-size:18px}
 
@@ -103,6 +104,10 @@ export const CSS = `
 .bf-cell-sub{display:block;font-size:11px;color:var(--muted)}
 
 .bf-footer{margin-top:18px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.bf-footer-text{margin:0}
+.bf-gh{display:inline-flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.bf-gh svg{display:block}
+.bf-gh:hover{color:var(--accent)}
 @media (prefers-reduced-motion: no-preference){.bf-panel,.bf-best,.bf-kpi{transition:border-color .15s}}
 .bf-row-actions{display:flex;gap:6px;justify-content:flex-end}
 .bf-modal-backdrop{position:fixed;inset:0;background:rgba(28,40,38,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
