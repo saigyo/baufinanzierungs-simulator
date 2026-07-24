@@ -108,6 +108,7 @@ export const CSS = `
 .bf-gh{display:inline-flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:11px}
 .bf-gh svg{display:block}
 .bf-gh:hover{color:var(--accent)}
+.bf-gh:focus-visible{outline:2px solid var(--accent);outline-offset:2px;color:var(--accent)}
 @media (prefers-reduced-motion: no-preference){.bf-panel,.bf-best,.bf-kpi{transition:border-color .15s}}
 .bf-row-actions{display:flex;gap:6px;justify-content:flex-end}
 .bf-modal-backdrop{position:fixed;inset:0;background:rgba(28,40,38,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
