@@ -15,6 +15,10 @@ Kapitallebensversicherung).
 
 *Umkehr-Modus „Maximaler Kaufpreis" – höchster tragbarer Kaufpreis je Modell und Belastungsgrenze.*
 
+![Screenshot: Tilgungsplan je Modell – Zins- und Tilgungsanteil pro Jahr](docs/screenshot-tilgungsplan.png)
+
+*Tilgungsplan je Modell – Zins- und Tilgungsanteil pro Jahr als Chart oder Tabelle (u. a. für die steuerliche Betrachtung des absetzbaren Zinsanteils).*
+
 ## Features
 
 - **Sechs Modelle im Vergleich:** Annuitätendarlehen (10/15/20 J. Zinsbindung mit
@@ -27,8 +31,10 @@ Kapitallebensversicherung).
 - **Sondertilgung** (€/Jahr) – senkt Restschuld, Zinskosten und Folge-Raten
 - **Zins-Stresstest** – Aufschlag auf den Anschlusszins, Spitzen-Belastung als eigene Spalte
 - **Umkehr-Modus:** maximaler Kaufpreis je Modell für frei wählbare Belastungsgrenzen
+- **Tilgungsplan je Modell:** Zins-/Tilgungsanteil pro Jahr als Chart oder Tabelle
+  (relevant u. a. für den steuerlich absetzbaren Zinsanteil bei Vermietung)
 - **Teilbare Links:** alle Eingaben werden als URL-Parameter gespeichert
-- Charts: Restschuldverlauf, Belastungsquote über die Laufzeit, Max-Kaufpreis-Balken
+- Charts: Restschuldverlauf, Belastungsquote über die Laufzeit, Max-Kaufpreis-Balken, Tilgungschart
 
 ## Setup
 
